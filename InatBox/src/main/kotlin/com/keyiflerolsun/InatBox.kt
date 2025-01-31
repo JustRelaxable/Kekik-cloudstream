@@ -57,7 +57,6 @@ class InatBox : MainAPI() {
         }
 
         val headers = mapOf(
-            "Accept-Encoding" to "gzip, deflate",
             "Cache-Control" to "no-cache",
             "Content-Length" to "37",
             "Content-Type" to "application/x-www-form-urlencoded; charset=UTF-8",
@@ -80,6 +79,7 @@ class InatBox : MainAPI() {
 
         if (response.isSuccessful) {
             val encryptedResponse = response.text
+            Log.d("InatBox", "Encrypted response: ${encryptedResponse}")
             return getJsonFromEncryptedInatResponse(encryptedResponse)
         } else {
             Log.e("InatBox", "Request failed")
@@ -90,7 +90,6 @@ class InatBox : MainAPI() {
     // Function to decrypt the encrypted response and parse JSON
     private fun getJsonFromEncryptedInatResponse(response: String): String? {
         try {
-            Log.d("InatBox", "Will decrypt message: ${response}")
             val algorithm = "AES/CBC/PKCS5Padding"
             val keySpec = SecretKeySpec(randomAESKey.toByteArray(), "AES")
 
