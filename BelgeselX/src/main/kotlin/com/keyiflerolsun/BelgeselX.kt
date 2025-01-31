@@ -68,13 +68,18 @@ class BelgeselX : MainAPI() {
 
         val titles = Regex(""""titleNoFormatting": "(.*)"""").findAll(response.text).map { it.groupValues[1] }.toList()
         val urls = Regex(""""url": "(.*)"""").findAll(response.text).map { it.groupValues[1] }.toList()
+        val posterUrls = Regex(""""ogImage": "(.*)"""").findAll(response.text).map { it.groupValues[1] }.toList()
 
         val searchResponses = mutableListOf<TvSeriesSearchResponse>()
 
         for (i in titles.indices) {
             val title = titles[i]
             val url = urls.getOrNull(i) ?: break
-            searchResponses.add(TvSeriesSearchResponse(title, url,this.name))
+            val posterUrl = posterUrls.getOrNull(i) ?: break
+
+            if(!url.contains("belgeseldizi")) continue
+
+            searchResponses.add(TvSeriesSearchResponse(title, url,this.name, posterUrl = posterUrl))
         }
 
         return searchResponses
