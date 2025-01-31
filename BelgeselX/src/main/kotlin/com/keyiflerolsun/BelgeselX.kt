@@ -78,7 +78,8 @@ class BelgeselX : MainAPI() {
         val searchResponses = mutableListOf<TvSeriesSearchResponse>()
 
         for (i in titles.indices) {
-            val title = titles[i]
+            //Title genelde all capsti, o yüzden sadece ilk karakteri büyütüyorum
+            val title = titles[i].split("İzle")[0].trim().lowercase().split(" ").joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } }
             val url = urls.getOrNull(i) ?: break
             val posterUrl = posterUrls.getOrNull(i) ?: break
 
