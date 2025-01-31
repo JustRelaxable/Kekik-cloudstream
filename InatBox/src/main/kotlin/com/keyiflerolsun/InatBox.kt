@@ -90,6 +90,7 @@ class InatBox : MainAPI() {
     // Function to decrypt the encrypted response and parse JSON
     private fun getJsonFromEncryptedInatResponse(response: String): String? {
         try {
+            Log.d("InatBox", "Will decrypt message: ${response}")
             val algorithm = "AES/CBC/PKCS5Padding"
             val keySpec = SecretKeySpec(randomAESKey.toByteArray(), "AES")
 
