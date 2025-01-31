@@ -63,7 +63,21 @@ class BelgeselX : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        return mutableListOf<SearchResponse>()
+        val response = app.get("https://cse.google.com/cse/element/v1?rsz=filtered_cse&num=30&hl=tr&source=gcsc&cselibv=5c8d58cbdc1332a7&cx=016376594590146270301%3Aiwmy65ijgrm&q=${query}&safe=off&cse_tok=AB-tC_4svGSGv29hyYbwas3MdlSp%3A1738329806944&oq=${query}&callback=google.search.cse.api9969&rurl=https%3A%2F%2Fbelgeselx.com%2F")
+        Log.d("BLX","Search result: ${response.text}")
+
+        val titles = Regex(""""titleNoFormatting": "(.*)"""").findAll(response.text).map { it.groupValues[1] }.toList()
+        val urls = Regex(""""url": "(.*)"""").findAll(response.text).map { it.groupValues[1] }.toList()
+
+        val searchResponses = mutableListOf<TvSeriesSearchResponse>()
+
+        for (i in titles.indices) {
+            val title = titles[i]
+            val url = urls.getOrNull(i) ?: break
+            searchResponses.add(TvSeriesSearchResponse(title, url,this.name))
+        }
+
+        return searchResponses
     }
 
     override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
