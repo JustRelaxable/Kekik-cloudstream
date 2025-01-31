@@ -63,7 +63,12 @@ class BelgeselX : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val response = app.get("https://cse.google.com/cse/element/v1?rsz=filtered_cse&num=30&hl=tr&source=gcsc&cselibv=5c8d58cbdc1332a7&cx=016376594590146270301%3Aiwmy65ijgrm&q=${query}&safe=off&cse_tok=AB-tC_4svGSGv29hyYbwas3MdlSp%3A1738329806944&oq=${query}&callback=google.search.cse.api9969&rurl=https%3A%2F%2Fbelgeselx.com%2F")
+        val cx = "016376594590146270301:iwmy65ijgrm" //Might change in the future
+        val tokenResponse = app.get("https://cse.google.com/cse.js?cx=${cx}")
+        val cseLibVersion = Regex("""cselibVersion": "(.*)"""").find(tokenResponse.text)?.groupValues?.get(1)
+        val cseToken = Regex("""cse_token": "(.*)"""").find(tokenResponse.text)?.groupValues?.get(1)
+
+        val response = app.get("https://cse.google.com/cse/element/v1?rsz=filtered_cse&num=100&hl=tr&source=gcsc&cselibv=${cseLibVersion}&cx=${cx}&q=${query}&safe=off&cse_tok=${cseToken}&oq=${query}&callback=google.search.cse.api9969&rurl=https%3A%2F%2Fbelgeselx.com%2F")
         Log.d("BLX","Search result: ${response.text}")
 
         val titles = Regex(""""titleNoFormatting": "(.*)"""").findAll(response.text).map { it.groupValues[1] }.toList()
