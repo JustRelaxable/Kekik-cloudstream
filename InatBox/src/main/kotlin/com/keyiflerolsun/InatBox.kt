@@ -2,6 +2,7 @@ package com.keyiflerolsun
 
 import android.util.Log
 import com.lagradost.cloudstream3.*
+import com.lagradost.cloudstream3.ui.player.ExtractorLinkGenerator
 import com.lagradost.cloudstream3.utils.*
 import kotlinx.coroutines.delay
 import okhttp3.Interceptor
@@ -38,6 +39,7 @@ class InatBox : MainAPI() {
     override var sequentialMainPageScrollDelay = 100L
 
     private val urlToSearchResponse = mutableMapOf<String, SearchResponse>()
+    private val urlToDescription = mutableMapOf<String,String>()
 
     // Main page categories
     override val mainPage = mainPageOf(
@@ -376,6 +378,74 @@ class InatBox : MainAPI() {
         } catch (e: Exception) {
             Log.e("InatBox", "Failed to parse TV series response: ${e.message}\nStacktrace:${e.stackTrace.joinToString("\n")}")
             return null
+        }
+    }
+
+    override suspend fun loadLinks(
+        data: String,
+        isCasting: Boolean,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean {
+        return try {
+            // Check if the data is a JSON array (for TV series episodes)
+            if (data.startsWith("[")) {
+                // Parse the JSON array
+                val sourcesJsonArray = JSONArray(data)
+
+                // Iterate over each source in the JSON array
+                for (i in 0 until sourcesJsonArray.length()) {
+                    val sourceJsonObject = sourcesJsonArray.getJSONObject(i)
+
+                    // Extract source details
+                    val sourceName = sourceJsonObject.optString("sourceName", "")
+                    val sourceUrl = sourceJsonObject.optString("sourceUrl")
+
+                    // Create an ExtractorLink for this source
+                    val extractorLink = ExtractorLink(
+                        source = "InatBox",
+                        name = sourceName,
+                        url = sourceUrl,
+                        referer = "",
+                        quality = Qualities.Unknown.value,
+                        type = ExtractorLinkType.VIDEO
+                    )
+
+                    // Invoke the callback with the ExtractorLink
+                    callback.invoke(extractorLink)
+                }
+            } else {
+                // If the data is not a JSON array, treat it as a single URL (for movies or single-source episodes)
+                val extractorLink = ExtractorLink(
+                    source = "InatBox",
+                    name = "",
+                    url = data,
+                    referer = "",
+                    quality = Qualities.Unknown.value,
+                    type = ExtractorLinkType.VIDEO
+                )
+
+                // Invoke the callback with the ExtractorLink
+                callback.invoke(extractorLink)
+            }
+
+            // Return true to indicate success
+            true
+        } catch (e: Exception) {
+            // Log detailed error information
+            Log.e(
+                "InatBox",
+                """
+            Failed to load links:
+            - Exception: ${e::class.simpleName}
+            - Message: ${e.message}
+            - Stack Trace: ${e.stackTrace.joinToString("\n")}
+            - Input Data: ${data.take(500)} (first 500 characters)
+            """.trimIndent()
+            )
+
+            // Return false to indicate failure
+            false
         }
     }
 
