@@ -5,6 +5,7 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.ui.player.ExtractorLinkGenerator
 import com.lagradost.cloudstream3.utils.*
 import kotlinx.coroutines.delay
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Interceptor
 import org.json.JSONArray
 import java.net.URI
@@ -401,32 +402,50 @@ class InatBox : MainAPI() {
                     val sourceName = sourceJsonObject.optString("sourceName", "")
                     val sourceUrl = sourceJsonObject.optString("sourceUrl")
 
-                    // Create an ExtractorLink for this source
-                    val extractorLink = ExtractorLink(
-                        source = "InatBox",
-                        name = sourceName,
-                        url = sourceUrl,
-                        referer = "",
-                        quality = Qualities.Unknown.value,
-                        type = ExtractorLinkType.M3U8
-                    )
+                    // Check the host domain of the source URL
+                    val host = sourceUrl.toHttpUrlOrNull()?.host
+                    when (host) {
+                        "cdn.dzen.ru" -> {
+                            // Create an ExtractorLink for this source
+                            val extractorLink = ExtractorLink(
+                                source = "InatBox",
+                                name = sourceName,
+                                url = sourceUrl,
+                                referer = "",
+                                quality = Qualities.Unknown.value,
+                                type = ExtractorLinkType.M3U8
+                            )
 
-                    // Invoke the callback with the ExtractorLink
-                    callback.invoke(extractorLink)
+                            // Invoke the callback with the ExtractorLink
+                            callback.invoke(extractorLink)
+                        }
+                        else -> {
+                            loadExtractor(sourceUrl, subtitleCallback, callback)
+                        }
+                    }
                 }
             } else {
                 // If the data is not a JSON array, treat it as a single URL (for movies or single-source episodes)
-                val extractorLink = ExtractorLink(
-                    source = "InatBox",
-                    name = "",
-                    url = data,
-                    referer = "",
-                    quality = Qualities.Unknown.value,
-                    type = ExtractorLinkType.M3U8
-                )
+                val host = data.toHttpUrlOrNull()?.host
+                when (host) {
+                    "cdn.dzen.ru" -> {
+                        // Create an ExtractorLink for this source
+                        val extractorLink = ExtractorLink(
+                            source = "InatBox",
+                            name = "",
+                            url = data,
+                            referer = "",
+                            quality = Qualities.Unknown.value,
+                            type = ExtractorLinkType.M3U8
+                        )
 
-                // Invoke the callback with the ExtractorLink
-                callback.invoke(extractorLink)
+                        // Invoke the callback with the ExtractorLink
+                        callback.invoke(extractorLink)
+                    }
+                    else -> {
+                        loadExtractor(data, subtitleCallback, callback)
+                    }
+                }
             }
 
             // Return true to indicate success
