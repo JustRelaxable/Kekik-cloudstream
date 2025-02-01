@@ -368,7 +368,7 @@ class InatBox : MainAPI() {
                 return null
             }
         } catch (e: Exception) {
-            Log.e("InatBox", "Failed to parse TV series response: ${e.message}")
+            Log.e("InatBox", "Failed to parse TV series response: ${e.message}\nStacktrace:${e.stackTrace.joinToString("\n")}")
             return null
         }
     }
