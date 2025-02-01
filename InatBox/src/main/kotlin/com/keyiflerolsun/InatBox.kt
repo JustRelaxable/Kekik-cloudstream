@@ -30,6 +30,9 @@ class InatBox : MainAPI() {
     override val hasChromecastSupport = true
     override val hasDownloadSupport = true
     override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries)
+    override var sequentialMainPage = true
+    override var sequentialMainPageDelay = 1000L
+    override var sequentialMainPageScrollDelay = 1000L
 
     // Main page categories
     override val mainPage = mainPageOf(
@@ -209,41 +212,59 @@ class InatBox : MainAPI() {
         val episodes = mutableListOf<Episode>()
 
         try {
+            // Iterate over each season in the JSON array
             for (i in 0 until jsonArray.length()) {
-                val item = jsonArray.getJSONObject(i)
+                val seasonItem = jsonArray.getJSONObject(i)
 
-                // Extract fields from the JSON object
-                val name = item.getString("chName")
-                val episodeUrl = item.getString("chUrl")
-                val posterUrl = item.getString("chImg")
+                // Extract season details
+                val seasonName = seasonItem.getString("diziName")
+                val seasonUrl = seasonItem.getString("diziUrl")
+                val posterUrl = seasonItem.getString("diziImg")
 
-                // Extract season and episode numbers from the name (e.g., "S01 - 01.BÖLÜM")
-                val seasonEpisodeRegex = Regex("""S(\d+).*?(\d+).BÖLÜM""")
-                val matchResult = seasonEpisodeRegex.find(name)
-                val season = matchResult?.groupValues?.get(1)?.toIntOrNull() ?: 1
-                val episode = matchResult?.groupValues?.get(2)?.toIntOrNull() ?: 1
+                // Fetch the episode data for this season
+                val episodeResponse = makeInatRequest(seasonUrl) ?: continue
+                val episodeArray = try {
+                    JSONArray(episodeResponse)
+                } catch (e: Exception) {
+                    Log.e("InatBox", "Failed to parse episode JSON for season: $seasonName", e)
+                    continue
+                }
 
-                // Create an Episode object
-                episodes.add(
-                    Episode(
-                        data = episodeUrl,
-                        name = name,
-                        season = season,
-                        episode = episode,
-                        posterUrl = posterUrl
+                // Iterate over each episode in the season
+                for (j in 0 until episodeArray.length()) {
+                    val episodeItem = episodeArray.getJSONObject(j)
+
+                    // Extract episode details
+                    val episodeName = episodeItem.getString("chName")
+                    val episodeUrl = episodeItem.getString("chUrl")
+
+                    // Append the season name (e.g., "TR DUBLAJ" or "TR ALTYAZILI") to the episode name
+                    val fullEpisodeName = "$seasonName - $episodeName"
+
+                    // Extract season and episode numbers from the name (e.g., "S01 - 01.BÖLÜM")
+                    val seasonEpisodeRegex = Regex("""S(\d+).*?(\d+).BÖLÜM""")
+                    val matchResult = seasonEpisodeRegex.find(episodeName)
+                    val season = matchResult?.groupValues?.get(1)?.toIntOrNull() ?: 1
+                    val episode = matchResult?.groupValues?.get(2)?.toIntOrNull() ?: 1
+
+                    // Create an Episode object
+                    episodes.add(
+                        Episode(
+                            data = episodeUrl,
+                            name = fullEpisodeName,
+                            season = season,
+                            episode = episode
+                        )
                     )
-                )
+                }
             }
 
-            // Get the name and poster URL from the first item
-            val firstItem = jsonArray.getJSONObject(0)
-            val name = firstItem.getString("chName")
-            val posterUrl = firstItem.getString("chImg")
+            // Get the name and poster URL from the first season
+            val firstSeason = jsonArray.getJSONObject(0)
+            val name = firstSeason.getString("diziName")
 
             // Return a TvSeriesLoadResponse
-            return newTvSeriesLoadResponse(name, url, TvType.TvSeries, episodes) {
-                this.posterUrl = posterUrl
-            }
+            return newTvSeriesLoadResponse(name, url, TvType.TvSeries, episodes)
         } catch (e: Exception) {
             Log.e("InatBox", "Failed to parse TV series response: ${e.message}")
             return null
