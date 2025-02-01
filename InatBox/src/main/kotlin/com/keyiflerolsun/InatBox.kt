@@ -11,6 +11,11 @@ import javax.crypto.spec.SecretKeySpec
 import javax.crypto.spec.IvParameterSpec
 import java.util.Base64
 
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+
 class InatBox : MainAPI() {
     // URLs
     private val contentUrl = "https://dizibox.rest"
@@ -66,15 +71,12 @@ class InatBox : MainAPI() {
             "X-Requested-With" to "com.bp.box"
         )
 
-        val params = mapOf(
-            "0" to randomAESKey,
-            "1" to randomAESKey
-        )
+        val requestBody = "1=$randomAESKey&0=$randomAESKey"
 
         val response = app.post(
             url = url,
             headers = headers,
-            params = params
+            requestBody = requestBody.toRequestBody(contentType = "application/x-www-form-urlencoded; charset=UTF-8".toMediaType())
         )
 
         if (response.isSuccessful) {
