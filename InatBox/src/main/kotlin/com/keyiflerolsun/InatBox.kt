@@ -17,6 +17,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONException
 import org.json.JSONObject
 
 class InatBox : MainAPI() {
@@ -287,42 +288,45 @@ class InatBox : MainAPI() {
 
                 // Iterate over each episode in the season
                 for (j in 0 until episodeArray.length()) {
-                    Log.d("InatBox","Episode array: ${episodeArray.toString()}")
-                    val episodeItem = episodeArray.getJSONObject(j)
-                    Log.d("InatBox","Episode item: ${episodeItem.toString()}")
+                    Log.d("InatBox","Episode array length: ${episodeArray.length()}")
+                    try {
+                        val episodeItem = episodeArray.getJSONObject(j)
 
-                    // Extract episode details
-                    val episodeName = episodeItem.getString("chName")
-                    val episodeUrl = episodeItem.getString("chUrl")
+                        // Extract episode details
+                        val episodeName = episodeItem.getString("chName")
+                        val episodeUrl = episodeItem.getString("chUrl")
 
-                    // Extract season and episode numbers from the name (e.g., "S01 - 01.BÖLÜM")
-                    val seasonEpisodeRegex = Regex("""S(\d+).*?(\d+).BÖLÜM""")
-                    val matchResult = seasonEpisodeRegex.find(episodeName)
-                    val season = matchResult?.groupValues?.get(1)?.toIntOrNull()
-                    val episode = matchResult?.groupValues?.get(2)?.toIntOrNull()
+                        // Extract season and episode numbers from the name (e.g., "S01 - 01.BÖLÜM")
+                        val seasonEpisodeRegex = Regex("""S(\d+).*?(\d+).BÖLÜM""")
+                        val matchResult = seasonEpisodeRegex.find(episodeName)
+                        val season = matchResult?.groupValues?.get(1)?.toIntOrNull()
+                        val episode = matchResult?.groupValues?.get(2)?.toIntOrNull()
 
-                    if(season == null || episode == null){
-                        episodes.add(
-                            Episode(
-                                data = episodeUrl,
-                                name = episodeName
+                        if(season == null || episode == null){
+                            episodes.add(
+                                Episode(
+                                    data = episodeUrl,
+                                    name = episodeName
+                                )
                             )
-                        )
-                    }else{
-                        // Create an Episode object
-                        val episodeObj = Episode(
-                            data = episodeUrl,
-                            name = episodeName,
-                            season = season,
-                            episode = episode
-                        )
+                        }else{
+                            // Create an Episode object
+                            val episodeObj = Episode(
+                                data = episodeUrl,
+                                name = episodeName,
+                                season = season,
+                                episode = episode
+                            )
 
-                        // Group episodes by season and episode number
-                        val key = Pair(season, episode)
-                        if (!episodeEntries.containsKey(key)) {
-                            episodeEntries[key] = mutableListOf()
+                            // Group episodes by season and episode number
+                            val key = Pair(season, episode)
+                            if (!episodeEntries.containsKey(key)) {
+                                episodeEntries[key] = mutableListOf()
+                            }
+                            episodeEntries[key]?.add(episodeObj)
                         }
-                        episodeEntries[key]?.add(episodeObj)
+                    } catch (e: JSONException){
+                        continue
                     }
                 }
             }
