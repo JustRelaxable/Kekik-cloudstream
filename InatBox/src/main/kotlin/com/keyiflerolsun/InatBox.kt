@@ -3,6 +3,7 @@ package com.keyiflerolsun
 import android.util.Log
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
+import kotlinx.coroutines.delay
 import okhttp3.Interceptor
 import org.json.JSONArray
 import java.net.URI
@@ -33,6 +34,8 @@ class InatBox : MainAPI() {
     override var sequentialMainPage = false //Might change in the future
     override var sequentialMainPageDelay = 100L
     override var sequentialMainPageScrollDelay = 100L
+
+    private val urlToSearchResponse = mutableMapOf<String, SearchResponse>()
 
     // Main page categories
     override val mainPage = mainPageOf(
@@ -133,6 +136,13 @@ class InatBox : MainAPI() {
         // Parse the JSON response into a list of SearchResponse objects
         val searchResults = parseJsonResponse(jsonResponse)
 
+        for (searchResponse in searchResults) {
+            val url = searchResponse.url
+            if (!urlToSearchResponse.containsKey(url)) {
+                urlToSearchResponse[url] = searchResponse
+            }
+        }
+
         // Return a HomePageResponse with the parsed results
         return newHomePageResponse(request.name, searchResults)
     }
@@ -192,13 +202,36 @@ class InatBox : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        // Return an empty list since search is not supported
-        return emptyList()
+        if (urlToSearchResponse.isEmpty()) {
+            for (pageData in mainPage) {
+                val url = pageData.data
+                val jsonResponse = makeInatRequest(url) ?: continue
+
+                val searchResults = parseJsonResponse(jsonResponse)
+
+                for (searchResponse in searchResults) {
+                    val contentUrl = searchResponse.url
+                    if (!urlToSearchResponse.containsKey(contentUrl)) {
+                        urlToSearchResponse[contentUrl] = searchResponse
+                    }
+                }
+
+                delay(sequentialMainPageDelay)
+            }
+        }
+
+        val matchingResults = mutableListOf<SearchResponse>()
+        for ((_, searchResponse) in urlToSearchResponse) {
+            if (searchResponse.name.contains(query, ignoreCase = true)) {
+                matchingResults.add(searchResponse)
+            }
+        }
+
+        return matchingResults
     }
 
     override suspend fun quickSearch(query: String): List<SearchResponse> {
-        // Return an empty list since quick search is not supported
-        return emptyList()
+        return search(query)
     }
 
     override suspend fun load(url: String): LoadResponse? {
@@ -226,6 +259,7 @@ class InatBox : MainAPI() {
     // Helper function to parse a TV series response
     private suspend fun parseTvSeriesResponse(jsonArray: JSONArray, url: String): TvSeriesLoadResponse? {
         val episodes = mutableListOf<Episode>()
+        val searchResponse = urlToSearchResponse[url]
 
         try {
             // Iterate over each season in the JSON array
@@ -277,12 +311,16 @@ class InatBox : MainAPI() {
 
             // Get the name and poster URL from the first season
             val firstSeason = jsonArray.getJSONObject(0)
-            val name = firstSeason.getString("diziName")
             val posterUrl = firstSeason.getString("diziImg")
 
             // Return a TvSeriesLoadResponse
-            return newTvSeriesLoadResponse(name, url, TvType.TvSeries, episodes) {
-                this.posterUrl = posterUrl
+            if (searchResponse != null) {
+                return newTvSeriesLoadResponse(searchResponse.name, url, TvType.TvSeries, episodes) {
+                    this.posterUrl = posterUrl
+                }
+            }
+            else{
+                return null
             }
         } catch (e: Exception) {
             Log.e("InatBox", "Failed to parse TV series response: ${e.message}")
