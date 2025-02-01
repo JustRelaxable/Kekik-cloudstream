@@ -287,7 +287,9 @@ class InatBox : MainAPI() {
 
                 // Iterate over each episode in the season
                 for (j in 0 until episodeArray.length()) {
+                    Log.d("InatBox","Episode array: ${episodeArray.toString()}")
                     val episodeItem = episodeArray.getJSONObject(j)
+                    Log.d("InatBox","Episode item: ${episodeItem.toString()}")
 
                     // Extract episode details
                     val episodeName = episodeItem.getString("chName")
