@@ -148,25 +148,41 @@ class InatBox : MainAPI() {
             for (i in 0 until jsonArray.length()) {
                 val item = jsonArray.getJSONObject(i)
 
-                // Extract fields from the JSON object
-                val name = item.getString("diziName")
-                val url = item.getString("diziUrl")
-                val type = item.getString("diziType")
-                val posterUrl = item.getString("diziImg")
+                // Check if the response contains diziType (TV series or movie)
+                if (item.has("diziType")) {
+                    // Extract fields from the JSON object
+                    val name = item.getString("diziName")
+                    val url = item.getString("diziUrl")
+                    val type = item.getString("diziType")
+                    val posterUrl = item.getString("diziImg")
 
-                // Create a SearchResponse based on the type
-                val searchResponse = when (type) {
-                    "dizi" -> newTvSeriesSearchResponse(name, url, TvType.TvSeries) {
+                    // Create a SearchResponse based on the type
+                    val searchResponse = when (type) {
+                        "dizi" -> newTvSeriesSearchResponse(name, url, TvType.TvSeries) {
+                            this.posterUrl = posterUrl
+                        }
+                        "film" -> newMovieSearchResponse(name, url, TvType.Movie) {
+                            this.posterUrl = posterUrl
+                        }
+                        else -> null // Ignore unsupported types
+                    }
+
+                    // Add the SearchResponse to the list if it's not null
+                    searchResponse?.let { searchResults.add(it) }
+                } else if (item.has("chName") && item.has("chUrl") && item.has("chImg")) {
+                    // Handle the case where diziType is missing but chName, chUrl, and chImg are present
+                    val name = item.getString("chName")
+                    val url = item.getString("chUrl")
+                    val posterUrl = item.getString("chImg")
+
+                    // Create a MovieSearchResponse
+                    val searchResponse = newMovieSearchResponse(name, url, TvType.Movie) {
                         this.posterUrl = posterUrl
                     }
-                    "film" -> newMovieSearchResponse(name, url, TvType.Movie) {
-                        this.posterUrl = posterUrl
-                    }
-                    else -> null // Ignore unsupported types
+
+                    // Add the SearchResponse to the list
+                    searchResults.add(searchResponse)
                 }
-
-                // Add the SearchResponse to the list if it's not null
-                searchResponse?.let { searchResults.add(it) }
             }
         } catch (e: Exception) {
             Log.e("InatBox", "Failed to parse JSON response: ${e.message}")
