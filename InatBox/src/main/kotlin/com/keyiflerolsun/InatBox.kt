@@ -3,6 +3,7 @@ package com.keyiflerolsun
 import android.util.Log
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
+import okhttp3.Interceptor
 import org.json.JSONArray
 import java.net.URI
 import java.util.*
@@ -67,16 +68,24 @@ class InatBox : MainAPI() {
             "Content-Type" to "application/x-www-form-urlencoded; charset=UTF-8",
             "Host" to hostName,
             "Referer" to "https://speedrestapi.com/",
-            "User-Agent" to "speedrestapi",
             "X-Requested-With" to "com.bp.box"
         )
 
         val requestBody = "1=$randomAESKey&0=$randomAESKey"
 
+        val interceptor = Interceptor { chain ->
+            val request = chain.request()
+            val newRequest = request.newBuilder()
+                .header("User-Agent", "speedrestapi")
+                .build()
+            chain.proceed(newRequest)
+        }
+
         val response = app.post(
             url = url,
             headers = headers,
-            requestBody = requestBody.toRequestBody(contentType = "application/x-www-form-urlencoded; charset=UTF-8".toMediaType())
+            requestBody = requestBody.toRequestBody(contentType = "application/x-www-form-urlencoded; charset=UTF-8".toMediaType()),
+            interceptor = interceptor
         )
 
         if (response.isSuccessful) {
