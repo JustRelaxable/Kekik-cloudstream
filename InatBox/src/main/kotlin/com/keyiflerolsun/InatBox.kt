@@ -408,7 +408,7 @@ class InatBox : MainAPI() {
                         url = sourceUrl,
                         referer = "",
                         quality = Qualities.Unknown.value,
-                        type = ExtractorLinkType.VIDEO
+                        type = ExtractorLinkType.M3U8
                     )
 
                     // Invoke the callback with the ExtractorLink
@@ -422,7 +422,7 @@ class InatBox : MainAPI() {
                     url = data,
                     referer = "",
                     quality = Qualities.Unknown.value,
-                    type = ExtractorLinkType.VIDEO
+                    type = ExtractorLinkType.M3U8
                 )
 
                 // Invoke the callback with the ExtractorLink
