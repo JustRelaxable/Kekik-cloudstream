@@ -2,8 +2,9 @@ package com.keyiflerolsun
 
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
-import org.json.JSONObject
+import com.lagradost.cloudstream3.utils.ExtractorLink
+import com.lagradost.cloudstream3.utils.ExtractorLinkType
+import com.lagradost.cloudstream3.utils.Qualities
 import java.util.regex.Pattern
 
 class DiskYandexComTrExtractor : ExtractorApi() {
@@ -20,14 +21,22 @@ class DiskYandexComTrExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-        // Fetch the HTML content of the page
-        val response = app.get(url)
-        if (!response.isSuccessful) {
-            throw Exception("Failed to fetch URL: ${response.code}")
+        // Create a request with headers
+        val request = app.get(
+            url = url,
+            referer = "https://disk.yandex.com.tr/",
+            headers = mapOf(
+                "X-Requested-With" to "XMLHttpRequest"
+            )
+        )
+
+        // Check if the request was successful
+        if (!request.isSuccessful) {
+            throw Exception("Failed to fetch URL: ${request.code}")
         }
 
         // Extract the master-playlist.m3u8 URL using regex
-        val htmlContent = response.text
+        val htmlContent = request.text
         val matcher = masterPlaylistRegex.matcher(htmlContent)
         if (matcher.find()) {
             val masterPlaylistUrl = matcher.group()
