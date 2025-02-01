@@ -17,6 +17,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
 
 class InatBox : MainAPI() {
     // URLs
@@ -258,7 +259,11 @@ class InatBox : MainAPI() {
 
     // Helper function to parse a TV series response
     private suspend fun parseTvSeriesResponse(jsonArray: JSONArray, url: String): TvSeriesLoadResponse? {
+        // Map to store episodes grouped by season and episode number
+        val episodeEntries = mutableMapOf<Pair<Int, Int>, MutableList<Episode>>()
         val episodes = mutableListOf<Episode>()
+
+        // Get the SearchResponse for the given URL
         val searchResponse = urlToSearchResponse[url]
 
         try {
@@ -288,25 +293,66 @@ class InatBox : MainAPI() {
                     val episodeName = episodeItem.getString("chName")
                     val episodeUrl = episodeItem.getString("chUrl")
 
-                    // Append the season name (e.g., "TR DUBLAJ" or "TR ALTYAZILI") to the episode name
-                    val fullEpisodeName = "$seasonName - $episodeName"
-
                     // Extract season and episode numbers from the name (e.g., "S01 - 01.BÖLÜM")
                     val seasonEpisodeRegex = Regex("""S(\d+).*?(\d+).BÖLÜM""")
                     val matchResult = seasonEpisodeRegex.find(episodeName)
-                    val season = matchResult?.groupValues?.get(1)?.toIntOrNull() ?: 1
-                    val episode = matchResult?.groupValues?.get(2)?.toIntOrNull() ?: 1
+                    val season = matchResult?.groupValues?.get(1)?.toIntOrNull()
+                    val episode = matchResult?.groupValues?.get(2)?.toIntOrNull()
 
-                    // Create an Episode object
-                    episodes.add(
-                        Episode(
-                            data = episodeUrl,
-                            name = fullEpisodeName,
-                            //season = season,
-                            //episode = episode
+                    if(season == null || episode == null){
+                        episodes.add(
+                            Episode(
+                                data = episodeUrl,
+                                name = episodeName
+                            )
                         )
-                    )
+                    }else{
+                        // Create an Episode object
+                        val episodeObj = Episode(
+                            data = episodeUrl,
+                            name = episodeName,
+                            season = season,
+                            episode = episode
+                        )
+
+                        // Group episodes by season and episode number
+                        val key = Pair(season, episode)
+                        if (!episodeEntries.containsKey(key)) {
+                            episodeEntries[key] = mutableListOf()
+                        }
+                        episodeEntries[key]?.add(episodeObj)
+                    }
                 }
+            }
+
+            // Create a JSON array for episodes with the same season and episode number
+            for ((key, episodeList) in episodeEntries) {
+                val (season, episode) = key
+
+                // Create a JSON array for the sources
+                val sourcesJsonArray = JSONArray()
+                for (episodeObj in episodeList) {
+                    val sourceName = episodeObj.name // Use the episode name as the source name
+                    val sourceUrl = episodeObj.data
+
+                    // Create a JSON object for the source
+                    val sourceJsonObject = JSONObject().apply {
+                        put("sourceName", sourceName)
+                        put("sourceUrl", sourceUrl)
+                    }
+
+                    // Add the source JSON object to the array
+                    sourcesJsonArray.put(sourceJsonObject)
+                }
+
+                // Create a new Episode object with the JSON array as the data
+                episodes.add(
+                    Episode(
+                        data = sourcesJsonArray.toString(), // Convert JSON array to string
+                        season = season,
+                        episode = episode
+                    )
+                )
             }
 
             // Get the name and poster URL from the first season
@@ -318,8 +364,7 @@ class InatBox : MainAPI() {
                 return newTvSeriesLoadResponse(searchResponse.name, url, TvType.TvSeries, episodes) {
                     this.posterUrl = posterUrl
                 }
-            }
-            else{
+            } else {
                 return null
             }
         } catch (e: Exception) {
