@@ -30,9 +30,9 @@ class InatBox : MainAPI() {
     override val hasChromecastSupport = true
     override val hasDownloadSupport = true
     override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries)
-    override var sequentialMainPage = true
-    override var sequentialMainPageDelay = 1000L
-    override var sequentialMainPageScrollDelay = 1000L
+    override var sequentialMainPage = false //Might change in the future
+    override var sequentialMainPageDelay = 100L
+    override var sequentialMainPageScrollDelay = 100L
 
     // Main page categories
     override val mainPage = mainPageOf(
@@ -252,8 +252,8 @@ class InatBox : MainAPI() {
                         Episode(
                             data = episodeUrl,
                             name = fullEpisodeName,
-                            season = season,
-                            episode = episode
+                            //season = season,
+                            //episode = episode
                         )
                     )
                 }
@@ -262,9 +262,12 @@ class InatBox : MainAPI() {
             // Get the name and poster URL from the first season
             val firstSeason = jsonArray.getJSONObject(0)
             val name = firstSeason.getString("diziName")
+            val posterUrl = firstSeason.getString("diziImg")
 
             // Return a TvSeriesLoadResponse
-            return newTvSeriesLoadResponse(name, url, TvType.TvSeries, episodes)
+            return newTvSeriesLoadResponse(name, url, TvType.TvSeries, episodes) {
+                this.posterUrl = posterUrl
+            }
         } catch (e: Exception) {
             Log.e("InatBox", "Failed to parse TV series response: ${e.message}")
             return null
