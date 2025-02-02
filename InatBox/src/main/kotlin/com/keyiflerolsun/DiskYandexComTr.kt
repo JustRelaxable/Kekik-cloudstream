@@ -7,7 +7,7 @@ import com.lagradost.cloudstream3.utils.ExtractorLinkType
 import com.lagradost.cloudstream3.utils.Qualities
 import java.util.regex.Pattern
 
-class DiskYandexComTrExtractor : ExtractorApi() {
+class DiskYandexComTr : ExtractorApi() {
     override val name: String = "DiskYandexComTr"
     override val mainUrl: String = "https://disk.yandex.com.tr"
     override val requiresReferer: Boolean = false
@@ -43,7 +43,7 @@ class DiskYandexComTrExtractor : ExtractorApi() {
 
             // Create an ExtractorLink for the master-playlist.m3u8 URL
             val extractorLink = ExtractorLink(
-                source = name,
+                source = "Yandex Disk",
                 name = "Yandex Disk",
                 url = masterPlaylistUrl,
                 referer = referer ?: "",

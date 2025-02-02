@@ -8,6 +8,7 @@ import android.content.Context
 class InatBoxPlugin: Plugin() {
     override fun load(context: Context) {
         registerMainAPI(InatBox())
-        registerExtractorAPI(DiskYandexComTrExtractor())
+        registerExtractorAPI(DiskYandexComTr())
+        registerExtractorAPI(Vk())
     }
 }

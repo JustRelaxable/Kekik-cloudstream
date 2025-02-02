@@ -400,7 +400,10 @@ class InatBox : MainAPI() {
 
                     // Extract source details
                     val sourceName = sourceJsonObject.optString("sourceName", "")
-                    val sourceUrl = sourceJsonObject.optString("sourceUrl")
+                    var sourceUrl = sourceJsonObject.optString("sourceUrl")
+                    if(sourceUrl.startsWith("act")){
+                        sourceUrl = "https://vk.com/al_video.php?${sourceUrl}"
+                    }
 
                     // Check the host domain of the source URL
                     val host = sourceUrl.toHttpUrlOrNull()?.host
@@ -408,12 +411,12 @@ class InatBox : MainAPI() {
                         "cdn.dzen.ru" -> {
                             // Create an ExtractorLink for this source
                             val extractorLink = ExtractorLink(
-                                source = "InatBox",
-                                name = sourceName,
+                                source = "DzenRu",
+                                name = "DzenRu",
                                 url = sourceUrl,
                                 referer = "",
                                 quality = Qualities.Unknown.value,
-                                type = ExtractorLinkType.M3U8
+                                type = ExtractorLinkType.DASH
                             )
 
                             // Invoke the callback with the ExtractorLink
@@ -431,12 +434,12 @@ class InatBox : MainAPI() {
                     "cdn.dzen.ru" -> {
                         // Create an ExtractorLink for this source
                         val extractorLink = ExtractorLink(
-                            source = "InatBox",
-                            name = "",
+                            source = "DzenRu",
+                            name = "DzenRu",
                             url = data,
                             referer = "",
                             quality = Qualities.Unknown.value,
-                            type = ExtractorLinkType.M3U8
+                            type = ExtractorLinkType.DASH
                         )
 
                         // Invoke the callback with the ExtractorLink
