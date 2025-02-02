@@ -40,7 +40,7 @@ class InatBox : MainAPI() {
     override var sequentialMainPageScrollDelay = 100L
 
     private val urlToSearchResponse = mutableMapOf<String, SearchResponse>()
-    private val urlToDescription = mutableMapOf<String,String>()
+    private val urlToDescription = mutableMapOf<String, String>()
 
     // Main page categories
     override val mainPage = mainPageOf(
@@ -118,12 +118,15 @@ class InatBox : MainAPI() {
             // First decryption iteration
             val cipher1 = Cipher.getInstance(algorithm)
             cipher1.init(Cipher.DECRYPT_MODE, keySpec, IvParameterSpec(randomAESKey.toByteArray()))
-            val firstIterationData = cipher1.doFinal(Base64.getDecoder().decode(response.split(":")[0]))
+            val firstIterationData =
+                cipher1.doFinal(Base64.getDecoder().decode(response.split(":")[0]))
 
             // Second decryption iteration
             val cipher2 = Cipher.getInstance(algorithm)
             cipher2.init(Cipher.DECRYPT_MODE, keySpec, IvParameterSpec(randomAESKey.toByteArray()))
-            val secondIterationData = cipher2.doFinal(Base64.getDecoder().decode(String(firstIterationData).split(":")[0]))
+            val secondIterationData = cipher2.doFinal(
+                Base64.getDecoder().decode(String(firstIterationData).split(":")[0])
+            )
 
             // Parse JSON
             val jsonString = String(secondIterationData)
@@ -136,7 +139,8 @@ class InatBox : MainAPI() {
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         // Fetch the data from the category URL
-        val jsonResponse = makeInatRequest(request.data) ?: return newHomePageResponse(request.name, emptyList())
+        val jsonResponse =
+            makeInatRequest(request.data) ?: return newHomePageResponse(request.name, emptyList())
 
         // Parse the JSON response into a list of SearchResponse objects
         val searchResults = parseJsonResponse(jsonResponse)
@@ -176,9 +180,11 @@ class InatBox : MainAPI() {
                         "dizi" -> newTvSeriesSearchResponse(name, url, TvType.TvSeries) {
                             this.posterUrl = posterUrl
                         }
+
                         "film" -> newMovieSearchResponse(name, url, TvType.Movie) {
                             this.posterUrl = posterUrl
                         }
+
                         else -> null // Ignore unsupported types
                     }
 
@@ -262,7 +268,10 @@ class InatBox : MainAPI() {
     }
 
     // Helper function to parse a TV series response
-    private suspend fun parseTvSeriesResponse(jsonArray: JSONArray, url: String): TvSeriesLoadResponse? {
+    private suspend fun parseTvSeriesResponse(
+        jsonArray: JSONArray,
+        url: String
+    ): TvSeriesLoadResponse? {
         // Map to store episodes grouped by season and episode number
         val episodeEntries = mutableMapOf<Pair<Int, Int>, MutableList<Episode>>()
         val episodes = mutableListOf<Episode>()
@@ -291,7 +300,7 @@ class InatBox : MainAPI() {
 
                 // Iterate over each episode in the season
                 for (j in 0 until episodeArray.length()) {
-                    Log.d("InatBox","Episode array length: ${episodeArray.length()}")
+                    Log.d("InatBox", "Episode array length: ${episodeArray.length()}")
                     try {
                         val episodeItem = episodeArray.getJSONObject(j)
 
@@ -305,14 +314,14 @@ class InatBox : MainAPI() {
                         val season = matchResult?.groupValues?.get(1)?.toIntOrNull()
                         val episode = matchResult?.groupValues?.get(2)?.toIntOrNull()
 
-                        if(season == null || episode == null){
+                        if (season == null || episode == null) {
                             episodes.add(
                                 Episode(
                                     data = episodeUrl,
                                     name = episodeName
                                 )
                             )
-                        }else{
+                        } else {
                             // Create an Episode object
                             val episodeObj = Episode(
                                 data = episodeUrl,
@@ -328,7 +337,7 @@ class InatBox : MainAPI() {
                             }
                             episodeEntries[key]?.add(episodeObj)
                         }
-                    } catch (e: JSONException){
+                    } catch (e: JSONException) {
                         continue
                     }
                 }
@@ -370,14 +379,24 @@ class InatBox : MainAPI() {
 
             // Return a TvSeriesLoadResponse
             if (searchResponse != null) {
-                return newTvSeriesLoadResponse(searchResponse.name, url, TvType.TvSeries, episodes) {
+                return newTvSeriesLoadResponse(
+                    searchResponse.name,
+                    url,
+                    TvType.TvSeries,
+                    episodes
+                ) {
                     this.posterUrl = posterUrl
                 }
             } else {
                 return null
             }
         } catch (e: Exception) {
-            Log.e("InatBox", "Failed to parse TV series response: ${e.message}\nStacktrace:${e.stackTrace.joinToString("\n")}")
+            Log.e(
+                "InatBox",
+                "Failed to parse TV series response: ${e.message}\nStacktrace:${
+                    e.stackTrace.joinToString("\n")
+                }"
+            )
             return null
         }
     }
@@ -401,54 +420,14 @@ class InatBox : MainAPI() {
                     // Extract source details
                     val sourceName = sourceJsonObject.optString("sourceName", "")
                     var sourceUrl = sourceJsonObject.optString("sourceUrl")
-                    if(sourceUrl.startsWith("act")){
+                    if (sourceUrl.startsWith("act")) {
                         sourceUrl = "https://vk.com/al_video.php?${sourceUrl}"
                     }
 
-                    // Check the host domain of the source URL
-                    val host = sourceUrl.toHttpUrlOrNull()?.host
-                    when (host) {
-                        "cdn.dzen.ru" -> {
-                            // Create an ExtractorLink for this source
-                            val extractorLink = ExtractorLink(
-                                source = "DzenRu",
-                                name = "DzenRu",
-                                url = sourceUrl,
-                                referer = "",
-                                quality = Qualities.Unknown.value,
-                                type = ExtractorLinkType.DASH
-                            )
-
-                            // Invoke the callback with the ExtractorLink
-                            callback.invoke(extractorLink)
-                        }
-                        else -> {
-                            loadExtractor(sourceUrl, subtitleCallback, callback)
-                        }
-                    }
+                    loadExtractor(sourceUrl, subtitleCallback, callback)
                 }
             } else {
-                // If the data is not a JSON array, treat it as a single URL (for movies or single-source episodes)
-                val host = data.toHttpUrlOrNull()?.host
-                when (host) {
-                    "cdn.dzen.ru" -> {
-                        // Create an ExtractorLink for this source
-                        val extractorLink = ExtractorLink(
-                            source = "DzenRu",
-                            name = "DzenRu",
-                            url = data,
-                            referer = "",
-                            quality = Qualities.Unknown.value,
-                            type = ExtractorLinkType.DASH
-                        )
-
-                        // Invoke the callback with the ExtractorLink
-                        callback.invoke(extractorLink)
-                    }
-                    else -> {
-                        loadExtractor(data, subtitleCallback, callback)
-                    }
-                }
+                loadExtractor(data, subtitleCallback, callback)
             }
 
             // Return true to indicate success
