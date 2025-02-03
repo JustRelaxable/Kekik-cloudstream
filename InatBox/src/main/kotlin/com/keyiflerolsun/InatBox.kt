@@ -17,11 +17,9 @@ import org.json.JSONException
 import org.json.JSONObject
 
 class InatBox : MainAPI() {
-    // URLs
     private val contentUrl = "https://dizibox.rest"
     private val categoryUrl = "https://dizilab.cfd"
 
-    // Provider details
     override var name = "InatBox"
     override val hasMainPage = true
     override var lang = "tr"
@@ -32,8 +30,7 @@ class InatBox : MainAPI() {
     override var sequentialMainPage = false // ! Might change in the future
 
     private val urlToSearchResponse = mutableMapOf<String, SearchResponse>()
-    private val aesKey =
-        "ywevqtjrurkwtqgz" //This is used for both secret key and iv. This is the embedded master key for loading categories like sport channels.
+    private val aesKey = "ywevqtjrurkwtqgz" //This is used for both secret key and iv. This is the embedded master key for loading categories like sport channels.
 
     //This urls come from ${categoryUrl}/ct.php | I assume they won't change in the near future
     override val mainPage = mainPageOf(
@@ -152,12 +149,14 @@ class InatBox : MainAPI() {
 
             for (i in 0 until jsonArray.length()) {
                 val item = jsonArray.getJSONObject(i)
+
+                if (!inatContentAllowed(item)) {
+                    continue
+                }
+
                 //Let's pass item directly to the next step
                 if (item.has("diziType")) {
                     val name = item.getString("diziName")
-                    if (name.contains("inattv")) {
-                        continue
-                    }
                     val url = item.getString("diziUrl")
                     val type = item.getString("diziType")
                     val posterUrl = item.getString("diziImg")
@@ -177,9 +176,6 @@ class InatBox : MainAPI() {
                 } else if (item.has("chName") && item.has("chUrl") && item.has("chImg")) {
                     // Handle the case where diziType is missing but chName, chUrl, and chImg are present
                     val name = item.getString("chName")
-                    if (name.contains("inattv")) {
-                        continue
-                    }
                     var url = item.getString("chUrl")
                     val posterUrl = item.getString("chImg")
                     val chType = item.getString("chType")
@@ -192,7 +188,7 @@ class InatBox : MainAPI() {
                             this.posterUrl = posterUrl
                         }
 
-                        else -> newMovieSearchResponse(name, item.toString(), TvType.Movie) {
+                        else -> newMovieSearchResponse(name, item.toString()) {
                             this.posterUrl = posterUrl
                         }
                     }
@@ -246,12 +242,13 @@ class InatBox : MainAPI() {
 
     override suspend fun load(url: String): LoadResponse? {
         val item = JSONObject(url)
+
+        if(!inatContentAllowed(item)){
+            return null
+        }
+
         if (item.has("diziType")) {
             val name = item.getString("diziName")
-            if (name.contains("inattv")) {
-                return null
-            }
-
             val type = item.getString("diziType")
 
             return when (type) {
@@ -263,10 +260,6 @@ class InatBox : MainAPI() {
         } else if (item.has("chName") && item.has("chUrl") && item.has("chImg")) {
             // Handle the case where diziType is missing but chName, chUrl, and chImg are present
             val name = item.getString("chName")
-            if (name.contains("inattv")) {
-                return null
-            }
-
             val chType = item.getString("chType")
 
             val loadResponse = when (chType) {
@@ -277,24 +270,6 @@ class InatBox : MainAPI() {
         } else {
             return null
         }
-
-        /*
-        val jsonResponse = makeInatRequest(url) ?: return null
-
-        val jsonArray = try {
-            JSONArray(jsonResponse)
-        } catch (e: Exception) {
-            Log.e("InatBox", "Failed to parse JSON response: ${e.message}")
-            return null
-        }
-
-        return if (jsonArray.length() > 0 && jsonArray.getJSONObject(0).has("diziType")) {
-            parseTvSeriesResponse(jsonArray, url)
-        } else {
-            parseMovieResponse(jsonArray, url)
-        }
-
-         */
     }
 
     override suspend fun loadLinks(
@@ -316,17 +291,12 @@ class InatBox : MainAPI() {
                     // Extract source details
                     val sourceName = sourceJsonObject.optString("sourceName", "")
                     var sourceUrl = sourceJsonObject.optString("sourceUrl")
-                    if (sourceUrl.startsWith("act")) {
-                        sourceUrl = "https://vk.com/al_video.php?${sourceUrl}"
-                    }
-
+                    sourceUrl = sourceUrl.vkSourceFix()
                     loadExtractor(sourceUrl, subtitleCallback, callback)
                 }
             } else {
                 var sourceUrl = data
-                if (sourceUrl.startsWith("act")) {
-                    sourceUrl = "https://vk.com/al_video.php?${sourceUrl}"
-                }
+                sourceUrl = sourceUrl.vkSourceFix()
                 val extractorFound = loadExtractor(sourceUrl, subtitleCallback, callback)
 
                 //When no extractor found, try to load it as stream
@@ -357,19 +327,20 @@ class InatBox : MainAPI() {
             """.trimIndent()
             )
 
-            // Return false to indicate failure
             false
         }
     }
 
     // Helper function to parse a TV series response
-    private suspend fun parseTvSeriesResponse(item: JSONObject): TvSeriesLoadResponse? {
+    private suspend fun parseTvSeriesResponse(item: JSONObject,tvType: TvType = TvType.TvSeries): TvSeriesLoadResponse? {
         // Map to store episodes grouped by season and episode number
         val episodeEntries = mutableMapOf<Pair<Int, Int>, MutableList<Episode>>()
         val episodes = mutableListOf<Episode>()
 
         val url = item.getString("diziUrl")
         val posterUrl = item.getString("diziImg")
+        val plot = item.getString("diziDetay")
+
         val jsonResponse = makeInatRequest(url) ?: return null
 
         val jsonArray = JSONArray(jsonResponse)
@@ -480,10 +451,11 @@ class InatBox : MainAPI() {
                 return newTvSeriesLoadResponse(
                     searchResponse.name,
                     url,
-                    TvType.TvSeries,
+                    tvType,
                     episodes
                 ) {
                     this.posterUrl = posterUrl
+                    this.plot = plot
                 }
             } else {
                 return null
@@ -502,16 +474,26 @@ class InatBox : MainAPI() {
     // Helper function to parse a movie response
     private suspend fun parseMovieResponse(item: JSONObject): MovieLoadResponse? {
         try {
-            var url = item.getString("chUrl")
-            val posterUrl = item.getString("chImg")
+            if(item.has("diziType")){
+                val url = item.getString("diziUrl")
+                val posterUrl = item.getString("diziImg")
+                val plot = item.getString("diziDetay")
 
-            //val jsonResponse = makeInatRequest(url) ?: return null
-            //val firstItem = JSONObject(jsonResponse)
-            //val dataUrl = firstItem.getString("chUrl")
+                val jsonResponse = makeInatRequest(url) ?: return null
 
-            // Return a MovieLoadResponse
-            return newMovieLoadResponse(name, url, TvType.Movie, url) {
-                this.posterUrl = posterUrl
+                return newMovieLoadResponse(name,url,TvType.Movie,jsonResponse)
+            }else{
+                var url = item.getString("chUrl")
+                val posterUrl = item.getString("chImg")
+
+                //val jsonResponse = makeInatRequest(url) ?: return null
+                //val firstItem = JSONObject(jsonResponse)
+                //val dataUrl = firstItem.getString("chUrl")
+
+                // Return a MovieLoadResponse
+                return newMovieLoadResponse(name, url, TvType.Movie, url) {
+                    this.posterUrl = posterUrl
+                }
             }
         } catch (e: Exception) {
             Log.e("InatBox", "Failed to parse movie response: ${e.message}")
@@ -536,5 +518,26 @@ class InatBox : MainAPI() {
             Log.e("InatBox", "Failed to parse movie response: ${e.message}")
             return null
         }
+    }
+
+    private fun inatContentAllowed(item: JSONObject): Boolean {
+        var type = ""
+        if (item.has("diziType")){
+            type = item.getString("diziType")
+
+        }else{
+            type = item.getString("chType")
+        }
+        return when(type){
+            "link","web" -> false
+            else -> true
+        }
+    }
+
+    private fun String.vkSourceFix(): String{
+        if (this.startsWith("act")) {
+            return "https://vk.com/al_video.php?${this}"
+        }
+        return this
     }
 }
