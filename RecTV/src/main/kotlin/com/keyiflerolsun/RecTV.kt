@@ -106,12 +106,14 @@ class RecTV : MainAPI() {
 
             val episodeList = mutableListOf<Episode>()
 
+            val seasonNumberRegex = Regex("(\\d+)\\s*\\.?\\s*Sezon")
+
             for (sezon in sezonlar) {
                 for (bolum in sezon.episodes) {
                     episodeList.add(Episode(
                         data        = bolum.sources.first().url,
                         name        = bolum.title,
-                        season      = sezon.title.substringBefore(".S").toIntOrNull() ?: 1,
+                        season      = seasonNumberRegex.find(sezon.title)?.groupValues?.get(1)?.toIntOrNull() ?: 1,
                         episode     = bolum.title.substringAfter("Bölüm ").toIntOrNull() ?: 1,
                         description = sezon.title.substringAfter(".S "),
                         posterUrl   = veri.image
