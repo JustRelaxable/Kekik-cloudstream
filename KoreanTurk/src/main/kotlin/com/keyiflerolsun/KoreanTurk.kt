@@ -95,9 +95,25 @@ class KoreanTurk : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val document = app.post("${mainUrl}/", data=mapOf("s" to "${query}")).document
+        val document = app.get("${mainUrl}/").document
 
-        return document.select("div.standartbox").mapNotNull { it.toSearchResult() }
+        val searchResults = document.select(".cat-item").mapNotNull {
+            val title = it.text()
+            val href  = it.firstElementChild()?.attr("href")
+
+            if (title.contains(query, ignoreCase = true) && href != null) {
+                // ! i don't want to put posterUrl because already their website slow and getting every page is time consuming
+                // * val diziPage  = app.get(href).document
+                // * val posterUrl = diziPage.selectFirst("div.resimcik img")?.attr("src")?.removeSuffix("-60x60.jpg") + ".jpg" //Assuming every image has this res, might change in the future
+                newTvSeriesSearchResponse(title, href) {
+                    this.posterUrl = ""
+                }
+            } else {
+                null
+            }
+        }
+
+        return searchResults
     }
 
     override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
