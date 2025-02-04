@@ -104,24 +104,26 @@ class RecTV : MainAPI() {
             )
             val sezonlar = AppUtils.tryParseJson<List<RecDizi>>(diziReq.text) ?: return null
 
-            val episodeList = mutableListOf<Episode>()
+            val episodes = mutableMapOf<DubStatus,MutableList<Episode>>()
 
-            val seasonNumberRegex = Regex("(\\d+)\\s*\\.?\\s*Sezon")
+            val seasonNumberRegex = Regex("(\\d+)\\s*\\.?\\s*S")
 
             for (sezon in sezonlar) {
+                var seasonDubStatus = if(sezon.title.contains("altyazı",ignoreCase = true)) DubStatus.Subbed else if(sezon.title.contains("dublaj",ignoreCase = true)) DubStatus.Dubbed else DubStatus.None
                 for (bolum in sezon.episodes) {
-                    episodeList.add(Episode(
+                    episodes.getOrPut(seasonDubStatus,{ mutableListOf() }).add(Episode(
                         data        = bolum.sources.first().url,
                         name        = bolum.title,
-                        season      = seasonNumberRegex.find(sezon.title)?.groupValues?.get(1)?.toIntOrNull() ?: 1,
-                        episode     = bolum.title.substringAfter("Bölüm ").toIntOrNull() ?: 1,
+                        season      = seasonNumberRegex.find(sezon.title)?.groupValues?.get(1)?.toIntOrNull(),
+                        episode     = bolum.title.substringAfter("Bölüm ").toIntOrNull(),
                         description = sezon.title.substringAfter(".S "),
                         posterUrl   = veri.image
                     ))
                 }
             }
 
-            return newTvSeriesLoadResponse(veri.title, url, TvType.TvSeries, episodeList) {
+            return newAnimeLoadResponse(name = veri.title, url = url, type = TvType.TvSeries, comingSoonIfNone = false){
+                this.episodes = episodes.mapValues { it.value.toList() }.toMutableMap()
                 this.posterUrl = veri.image
                 this.plot      = veri.description
                 this.year      = veri.year
