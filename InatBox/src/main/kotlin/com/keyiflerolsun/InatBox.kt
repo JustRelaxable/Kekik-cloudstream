@@ -268,7 +268,7 @@ class InatBox : MainAPI() {
             val chType = item.getString("chType")
 
             val loadResponse = when (chType) {
-                "live_url" -> parseLiveStreamLoadResponse(item)
+                "live_url","cable_sh" -> parseLiveStreamLoadResponse(item)
                 "tekli_regex_lb_sh_3" -> parseLiveSportsStreamLoadResponse(item)
                 else                              -> parseMovieResponse(item)
             }
@@ -310,8 +310,29 @@ class InatBox : MainAPI() {
                     }
                 }
             } else {
-                var sourceUrl      = data
-                sourceUrl          = sourceUrl.vkSourceFix()
+                val jsonObject = JSONObject(data)
+                var sourceUrl = jsonObject.getString("chUrl")
+
+                var headers: MutableMap<String,String> = mutableMapOf()
+                try {
+                    val chHeaders = jsonObject.getString("chHeaders")
+                    val chReg = jsonObject.getString("chReg")
+                    if(chHeaders != "null"){
+                        val jsonHeaders = JSONArray(chHeaders).getJSONObject(0)
+                        for (entry in jsonHeaders.keys()){
+                            headers.put(entry,jsonHeaders[entry].toString())
+                        }
+                    }
+                    if(chReg != null){
+                        val jsonReg = JSONArray(chReg).getJSONObject(0)
+                        val cookie = jsonReg.getString("playSH2")
+                        headers.put("Cookie",cookie)
+                    }
+                }catch (e:Exception){
+
+                }
+
+                sourceUrl = sourceUrl.vkSourceFix()
                 val extractorFound = loadExtractor(sourceUrl, subtitleCallback, callback)
 
                 //When no extractor found, try to load it as stream
@@ -321,8 +342,9 @@ class InatBox : MainAPI() {
                             source  = this.name,
                             name    = this.name,
                             url     = sourceUrl,
-                            referer = "https://google.com/",
+                            referer = "",
                             quality = Qualities.Unknown.value,
+                            headers = headers,
                             type    = ExtractorLinkType.M3U8
                         )
                     )
@@ -498,7 +520,7 @@ class InatBox : MainAPI() {
                 val jsonObject   = JSONArray(jsonResponse).getJSONObject(0)
                 url = jsonObject.getString("chUrl")
 
-                return newMovieLoadResponse(name, url, TvType.Movie, url) {
+                return newMovieLoadResponse(name, url, TvType.Movie, jsonObject.toString()) {
                     this.posterUrl = posterUrl
                     this.plot      = plot
                 }
@@ -512,7 +534,7 @@ class InatBox : MainAPI() {
                 //val dataUrl = firstItem.getString("chUrl")
 
                 // Return a MovieLoadResponse
-                return newMovieLoadResponse(name, url, TvType.Movie, url) {
+                return newMovieLoadResponse(name, url, TvType.Movie, item.toString()) {
                     this.posterUrl = posterUrl
                 }
             }
@@ -527,9 +549,15 @@ class InatBox : MainAPI() {
             val name      = item.getString("chName")
             var url       = item.getString("chUrl")
             val posterUrl = item.getString("chImg")
+            val headers = item.getString("chHeaders")
+            val reg = item.getString("chReg")
 
             val jsonResponse = makeInatRequest(url) ?: return null
             val firstItem    = JSONObject(jsonResponse)
+
+            firstItem.put("chHeaders",headers)
+            firstItem.put("chReg",reg)
+
             val dataUrl      = firstItem.getString("chUrl")
 
             // Return a MovieLoadResponse
@@ -537,7 +565,7 @@ class InatBox : MainAPI() {
                 name      = name,
                 url       = url,
                 apiName   = this.name,
-                dataUrl   = dataUrl,
+                dataUrl   = firstItem.toString(),
                 posterUrl = posterUrl
             )
         } catch (e: Exception) {
@@ -557,7 +585,7 @@ class InatBox : MainAPI() {
                 name      = name,
                 url       = url,
                 apiName   = this.name,
-                dataUrl   = url,
+                dataUrl   = item.toString(),
                 posterUrl = posterUrl
             )
         } catch (e: Exception) {
