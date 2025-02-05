@@ -35,6 +35,14 @@ class InatBox : MainAPI() {
     // ! This urls come from ${categoryUrl}/ct.php | I assume they won't change in the near future
     override val mainPage = mainPageOf(
         "https://boxbc.sbs/CDN/001_STR/boxbc.sbs/spor_v2.php" to "Spor Kanalları",
+        "https://dizibox.rest/tv/cable.php" to "Kanallar Liste 1",
+        "https://dizibox.rest/tv/list2.php" to "Kanallar Liste 2",
+        "https://dizibox.rest/tv/sinema.php" to "Sinema Kanalları",
+        "https://dizibox.rest/tv/belgesel.php" to "Belgesel Kanalları",
+        "https://dizibox.rest/tv/ulusal.php" to "Ulusal Kanallar",
+        "https://dizibox.rest/tv/haber.php" to "Haber Kanalları",
+        "https://dizibox.rest/tv/cocuk.php" to "Çocuk Kanalları",
+        "https://dizibox.rest/tv/dini.php" to "Dini Kanallar",
         "${contentUrl}/ex/index.php"                          to "EXXEN",
         "${contentUrl}/ga/index.php"                          to "Gain",
         "${contentUrl}/blu/index.php"                         to "BluTV",
@@ -260,7 +268,8 @@ class InatBox : MainAPI() {
             val chType = item.getString("chType")
 
             val loadResponse = when (chType) {
-                "live_url", "tekli_regex_lb_sh_3" -> parseLiveStreamLoadResponse(item)
+                "live_url" -> parseLiveStreamLoadResponse(item)
+                "tekli_regex_lb_sh_3" -> parseLiveSportsStreamLoadResponse(item)
                 else                              -> parseMovieResponse(item)
             }
             return loadResponse
@@ -513,7 +522,7 @@ class InatBox : MainAPI() {
         }
     }
 
-    private suspend fun parseLiveStreamLoadResponse(item: JSONObject): LiveStreamLoadResponse? {
+    private suspend fun parseLiveSportsStreamLoadResponse(item: JSONObject): LiveStreamLoadResponse? {
         try {
             val name      = item.getString("chName")
             var url       = item.getString("chUrl")
@@ -529,6 +538,26 @@ class InatBox : MainAPI() {
                 url       = url,
                 apiName   = this.name,
                 dataUrl   = dataUrl,
+                posterUrl = posterUrl
+            )
+        } catch (e: Exception) {
+            Log.e("InatBox", "Failed to parse movie response: ${e.message}")
+            return null
+        }
+    }
+
+    private suspend fun parseLiveStreamLoadResponse(item: JSONObject): LiveStreamLoadResponse? {
+        try {
+            val name      = item.getString("chName")
+            var url       = item.getString("chUrl")
+            val posterUrl = item.getString("chImg")
+
+            // Return a MovieLoadResponse
+            return LiveStreamLoadResponse(
+                name      = name,
+                url       = url,
+                apiName   = this.name,
+                dataUrl   = url,
                 posterUrl = posterUrl
             )
         } catch (e: Exception) {
