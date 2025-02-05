@@ -10,7 +10,7 @@ open class YTS : MainAPI() {
     override var mainUrl              = "https://en.yts-official.mx"
     override var name                 = "YTS"
     override val hasMainPage          = true
-    override var lang                 = "en"
+    override var lang                 = "tr"
     override val hasQuickSearch       = true
     override val hasDownloadSupport   = true
     override val supportedTypes       = setOf(TvType.Movie,TvType.Torrent)
