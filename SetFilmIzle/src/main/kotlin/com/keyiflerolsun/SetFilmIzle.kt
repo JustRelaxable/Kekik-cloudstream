@@ -8,6 +8,9 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
+import org.json.JSONObject
+import org.jsoup.Jsoup
+import okhttp3.*
 
 class SetFilmIzle : MainAPI() {
     override var mainUrl              = "https://www.setfilmizle.nl"
@@ -54,7 +57,7 @@ class SetFilmIzle : MainAPI() {
     }
 
     private fun Element.toMainPageResult(): SearchResponse? {
-        val title     = this.selectFirst("h2.flbaslik")?.text() ?: return null
+        val title     = this.selectFirst("h2")?.text() ?: return null
         val href      = fixUrlNull(this.selectFirst("a")?.attr("href")) ?: return null
         val posterUrl = fixUrlNull(this.selectFirst("img")?.attr("data-src"))
 
@@ -66,15 +69,26 @@ class SetFilmIzle : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val document = app.get("${mainUrl}/?s=${query}").document
+        val mainPage = app.get(mainUrl).document
+        val nonce    = Regex("""nonce: '(.*)'""").find(mainPage.html())?.groupValues?.get(1) ?: ""
+        val search   = app.post(
+            url     = "${mainUrl}/wp-admin/admin-ajax.php",
+            headers = mapOf("X-Requested-With" to "XMLHttpRequest"),
+            data    = mapOf(
+                "action" to "ajax_search",
+                "nonce"  to nonce,
+                "search" to query
+            )
+        )
+        val document = Jsoup.parse(JSONObject(search.text).getString("html"))
 
-        return document.select("div.result-item article").mapNotNull { it.toSearchResult() }
+        return document.select("div.items article").mapNotNull { it.toSearchResult() }
     }
 
     private fun Element.toSearchResult(): SearchResponse? {
-        val title     = this.selectFirst("div.title a")?.text() ?: return null
-        val href      = fixUrlNull(this.selectFirst("div.title a")?.attr("href")) ?: return null
-        val posterUrl = fixUrlNull(this.selectFirst("img")?.attr("src"))
+        val title     = this.selectFirst("h2")?.text() ?: return null
+        val href      = fixUrlNull(this.selectFirst("a")?.attr("href")) ?: return null
+        val posterUrl = fixUrlNull(this.selectFirst("img")?.attr("data-src"))
 
         if (href.contains("/dizi/")) {
             return newTvSeriesSearchResponse(title, href, TvType.TvSeries) { this.posterUrl = posterUrl }
@@ -104,11 +118,11 @@ class SetFilmIzle : MainAPI() {
             duration = document.selectFirst("div#info span:containsOwn(Dakika)")?.text()?.split(" ")?.first()?.trim()?.toIntOrNull()
 
             val episodes = document.select("div#episodes ul.episodios li").mapNotNull {
-                val epHref    = fixUrlNull(it.selectFirst("div.episodiotitle a")?.attr("href")) ?: return@mapNotNull null
-                val epName    = it.selectFirst("div.episodiotitle a")?.ownText()?.trim() ?: return@mapNotNull null
-                val epDetail  = it.selectFirst("div.numerando")?.text()?.split(" - ") ?: return@mapNotNull null
-                val epSeason  = epDetail.first()?.toIntOrNull()
-                val epEpisode = epDetail.last()?.toIntOrNull()
+                val epHref    = fixUrlNull(it.selectFirst("h4.episodiotitle a")?.attr("href")) ?: return@mapNotNull null
+                val epName    = it.selectFirst("h4.episodiotitle a")?.ownText()?.trim() ?: return@mapNotNull null
+                val epDetail  = it.selectFirst("h4.episodiotitle a")?.ownText()?.trim() ?: return@mapNotNull null
+                val epSeason  = epDetail.substringBefore(". Sezon")?.toIntOrNull()
+                val epEpisode = epDetail.split("Sezon ").last().substringBefore(". Bölüm")?.toIntOrNull()
 
                 Episode(
                     data    = epHref,
@@ -156,23 +170,51 @@ class SetFilmIzle : MainAPI() {
         }
     }
 
+    private fun sendMultipartRequest(nonce: String, postId: String, playerName: String, partKey: String, referer: String): Response? {
+        val formData = mapOf(
+            "action"      to "get_video_url",
+            "nonce"       to nonce,
+            "post_id"     to postId,
+            "player_name" to playerName,
+            "part_key"    to partKey
+        )
+
+        val requestBody = MultipartBody.Builder().setType(MultipartBody.FORM).apply {
+            formData.forEach { (key, value) -> addFormDataPart(key, value) }
+        }.build()
+
+        val headers = mapOf(
+            "Referer"      to referer,
+            "Content-Type" to "multipart/form-data; boundary=---------------------------112453778312642376182726606734",
+        )
+
+        val request = Request.Builder().url("${mainUrl}/wp-admin/admin-ajax.php").post(requestBody).apply {
+            headers.forEach { (key, value) -> addHeader(key, value) }
+        }.build()
+
+        val client = OkHttpClient()
+
+        return client.newCall(request).execute()
+    }
+
     override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
         Log.d("STF", "data » ${data}")
         val document = app.get(data).document
 
         document.select("nav.player a").map { element ->
-            val sourceParts = element.attr("onclick").substringAfter("Change_Source('").substringBefore("');").split("','")
-
-            val sourceId = sourceParts.getOrNull(0) ?: ""
-            val name     = sourceParts.getOrNull(1) ?: ""
-            val partKey  = sourceParts.getOrNull(2) ?: ""
+            val sourceId = element.attr("data-post-id") ?: ""
+            val name     = element.attr("data-player-name") ?: ""
+            val partKey  = element.attr("data-part-key") ?: ""
 
             Triple(name, sourceId, partKey)
         }.forEach { (name, sourceId, partKey) ->
             if (sourceId.contains("event")) return@forEach
+            if (partKey == "" || sourceId == "") return@forEach
 
-            val sourceDoc    = app.get("${mainUrl}/play/play.php?ser=${sourceId}&name=${name}&partKey=${partKey}", referer=data).document
-            val sourceIframe = sourceDoc.selectFirst("iframe")?.attr("src") ?: return@forEach
+            val nonce        = Regex("""nonce: '(.*)'""").find(document.html())?.groupValues?.get(1) ?: ""
+            val multiPart    = sendMultipartRequest(nonce, sourceId, name, partKey, data)
+            val sourceBody   = multiPart?.body?.string() ?: return@forEach
+            val sourceIframe = JSONObject(sourceBody).optJSONObject("data")?.optString("url") ?: return@forEach
             Log.d("STF", "iframe » ${sourceIframe}")
 
             if (sourceIframe.contains("explay.store") || sourceIframe.contains("setplay.site")) {

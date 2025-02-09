@@ -18,7 +18,7 @@ import java.net.URLDecoder
 import android.util.Base64
 
 class WebteIzle : MainAPI() {
-    override var mainUrl              = "https://webteizle.info"
+    override var mainUrl              = "https://webteizle3.com"
     override var name                 = "WebteIzle"
     override val hasMainPage          = true
     override var lang                 = "tr"

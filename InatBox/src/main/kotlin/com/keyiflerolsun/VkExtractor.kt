@@ -15,7 +15,7 @@ class Vk : ExtractorApi() {
             referer = this.mainUrl,
         )
 
-        val m3u8Regex     = Regex("""\"hls_ondemand\":\"(.*?)\"""")
+        val m3u8Regex     = Regex(""""([^"]*m3u8[^"]*)"""")
         val m3u8SourceUrl = m3u8Regex.find(response.text)?.groupValues?.get(1)?.replace("\\/", "/")
 
         if (m3u8SourceUrl != null) {

@@ -11,5 +11,6 @@ class InatBoxPlugin: Plugin() {
         registerExtractorAPI(DiskYandexComTr())
         registerExtractorAPI(Vk())
         registerExtractorAPI(Dzen())
+        registerExtractorAPI(CDNJWPlayer())
     }
 }

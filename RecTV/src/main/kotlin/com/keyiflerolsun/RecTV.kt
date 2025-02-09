@@ -106,7 +106,7 @@ class RecTV : MainAPI() {
 
             val episodes = mutableMapOf<DubStatus,MutableList<Episode>>()
 
-            val seasonNumberRegex = Regex("(\\d+)\\s*\\.?\\s*S")
+            val numberRegex = Regex("\\d+")
 
             for (sezon in sezonlar) {
                 var seasonDubStatus = if(sezon.title.contains("altyazı",ignoreCase = true)) DubStatus.Subbed else if(sezon.title.contains("dublaj",ignoreCase = true)) DubStatus.Dubbed else DubStatus.None
@@ -114,8 +114,8 @@ class RecTV : MainAPI() {
                     episodes.getOrPut(seasonDubStatus,{ mutableListOf() }).add(Episode(
                         data        = bolum.sources.first().url,
                         name        = bolum.title,
-                        season      = seasonNumberRegex.find(sezon.title)?.groupValues?.get(1)?.toIntOrNull(),
-                        episode     = bolum.title.substringAfter("Bölüm ").toIntOrNull(),
+                        season      = numberRegex.find(sezon.title)?.value?.toIntOrNull(),
+                        episode     = numberRegex.find(bolum.title)?.value?.toIntOrNull(),
                         description = sezon.title.substringAfter(".S "),
                         posterUrl   = veri.image
                     ))
