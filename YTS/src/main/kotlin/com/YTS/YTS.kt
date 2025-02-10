@@ -1,5 +1,6 @@
 package com.YTS
 
+import android.content.Context
 import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addImdbId
@@ -17,12 +18,15 @@ import java.io.IOException
 import java.net.URL
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
+import java.io.*
+import java.net.ServerSocket
+import java.net.Socket
 
-open class YTS : MainAPI() {
+open class YTS(val context: Context) : MainAPI() {
     override var mainUrl              = "https://en.yts-official.mx"
     override var name                 = "YTS"
     override val hasMainPage          = true
-    override var lang                 = "tr"
+    override var lang                 = "en"
     override val hasQuickSearch       = true
     override val hasDownloadSupport   = true
     override val supportedTypes       = setOf(TvType.Movie,TvType.Torrent)
@@ -35,6 +39,67 @@ open class YTS : MainAPI() {
         "browse-movies?keyword=&quality=2160p&genre=all&rating=0&year=0&order_by=latest" to "4K Movies",
         "browse-movies?keyword=&quality=1080p&genre=all&rating=0&year=0&order_by=latest" to "1080p Movies",
     )
+
+    private val tempDir = File(context.getExternalFilesDir(null), "subtitles").apply { mkdirs() }
+    private var webServer: Thread? = null
+
+    init {
+        startWebServer()
+    }
+
+    private fun startWebServer() {
+        webServer = Thread {
+            try {
+                val serverSocket = ServerSocket(1235)
+                println("Web server running at http://localhost:1235/")
+
+                while (true) {
+                    val clientSocket = serverSocket.accept()
+                    handleClient(clientSocket)
+                }
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+        }
+        webServer?.start()
+    }
+
+    private fun handleClient(client: Socket) {
+        client.getInputStream().bufferedReader().use { reader ->
+            val requestLine = reader.readLine() ?: return
+            println("Request: $requestLine")
+
+            val requestedFile = requestLine.split(" ")[1].trimStart('/')
+            val file = File(tempDir, requestedFile)
+
+            client.getOutputStream().bufferedWriter().use { writer ->
+                try {
+                    if (file.exists() && file.isFile) {
+                        val fileBytes = file.readBytes()
+                        writer.write("HTTP/1.1 200 OK\r\n")
+                        writer.write("Content-Length: ${fileBytes.size}\r\n")
+                        writer.write("Content-Type: text/plain\r\n")
+                        writer.write("\r\n")
+                        writer.flush()
+                        client.getOutputStream().write(fileBytes)
+                    } else {
+                        val response = "File not found"
+                        writer.write("HTTP/1.1 404 Not Found\r\n")
+                        writer.write("Content-Length: ${response.length}\r\n")
+                        writer.write("Content-Type: text/plain\r\n")
+                        writer.write("\r\n")
+                        writer.write(response)
+                        writer.flush()
+                    }
+                } catch (e: java.net.SocketException) {
+                    println("Client closed the connection prematurely: ${e.message}")
+                } catch (e: Exception) {
+                    println("An error occurred: ${e.message}")
+                }
+            }
+            client.close()
+        }
+    }
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val document = app.get("$mainUrl/${request.data}&page=$page").document
@@ -88,14 +153,13 @@ open class YTS : MainAPI() {
             ?.split(" / ")
             ?.map { it.trim() }
         val rating= document.select("#movie-info > div.bottom-info > div:nth-child(2) > span:nth-child(2)").text().toRatingInt()
-        val imdbId = Regex("movie-imdb\\/(tt\\d+)").find(document.html())?.groupValues?.get(1)
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
             this.posterUrl = poster
             this.plot = title
             this.year = year
             this.rating=rating
             this.tags = tags
-            this.addImdbId(imdbId)
+            this.addImdbId("tt0837562")
         }
     }
 
@@ -117,11 +181,11 @@ open class YTS : MainAPI() {
                     if (!subtitlePath.isNullOrEmpty()) {
                         val zipSubtitleUrl = "https://yifysubtitles.ch/subtitle" + subtitlePath.removePrefix("/subtitles") + ".zip"
 
-                        val tempDir = File(System.getProperty("java.io.tmpdir"), "subtitles")
                         val extractedFile = downloadAndExtractZip(zipSubtitleUrl, tempDir)
 
                         if(extractedFile!=null){
-                            val subtitleUrl = uploadFileToCatbox(extractedFile)
+                            //val subtitleUrl = uploadFileToCatbox(extractedFile)
+                            val subtitleUrl = "http://localhost:1235/${extractedFile.name}"
                             if(subtitleUrl != null){
                                 subtitleCallback.invoke(
                                     SubtitleFile("Türkçe",subtitleUrl)

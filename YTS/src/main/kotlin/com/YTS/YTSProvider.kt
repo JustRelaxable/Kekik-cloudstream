@@ -7,6 +7,6 @@ import android.content.Context
 @CloudstreamPlugin
 class YTSProvider: Plugin() {
     override fun load(context: Context) {
-        registerMainAPI(YTS())
+        registerMainAPI(YTS(context))
     }
 }
