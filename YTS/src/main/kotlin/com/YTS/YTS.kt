@@ -3,6 +3,7 @@ package com.YTS
 import android.content.Context
 import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.*
+import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import com.lagradost.cloudstream3.LoadResponse.Companion.addImdbId
 import com.lagradost.cloudstream3.subtitles.SubtitleResource
 import com.lagradost.cloudstream3.utils.*
@@ -21,6 +22,7 @@ import java.util.zip.ZipInputStream
 import java.io.*
 import java.net.ServerSocket
 import java.net.Socket
+import java.net.URLDecoder
 
 open class YTS(val context: Context) : MainAPI() {
     override var mainUrl              = "https://en.yts-official.mx"
@@ -32,6 +34,7 @@ open class YTS(val context: Context) : MainAPI() {
     override val supportedTypes       = setOf(TvType.Movie,TvType.Torrent)
 
     val subtitlesUrl = "https://yifysubtitles.ch"
+    val turkceAltyaziOrgUrl = "https://turkcealtyazi.org"
 
     override val mainPage = mainPageOf(
         "browse-movies?keyword=&quality=all&genre=all&rating=0&year=0&order_by=latest" to "Latest",
@@ -69,7 +72,7 @@ open class YTS(val context: Context) : MainAPI() {
             val requestLine = reader.readLine() ?: return
             println("Request: $requestLine")
 
-            val requestedFile = requestLine.split(" ")[1].trimStart('/')
+            val requestedFile = URLDecoder.decode(requestLine.split(" ")[1].trimStart('/'))
             val file = File(tempDir, requestedFile)
 
             client.getOutputStream().bufferedWriter().use { writer ->
@@ -153,13 +156,27 @@ open class YTS(val context: Context) : MainAPI() {
             ?.split(" / ")
             ?.map { it.trim() }
         val rating= document.select("#movie-info > div.bottom-info > div:nth-child(2) > span:nth-child(2)").text().toRatingInt()
+        val imdbId = Regex("movie-imdb\\/(tt\\d+)").find(document.html())?.groupValues?.get(1)
+
+        //Data from TürkçeAltyazı.Org
+        val turkceAltyazıOrgDocument = app.get("${turkceAltyaziOrgUrl}/mov/${imdbId?.substringAfter("tt")}/").document
+        val plot = turkceAltyazıOrgDocument.selectFirst(".ozet-goster")?.text()
+        val actors = turkceAltyazıOrgDocument.select("div[itemprop=actors] li").mapNotNull {
+            val firstChild = it.firstElementChild()
+            val firstChildsFirstChild = firstChild?.firstElementChild()
+            val actorName = firstChild?.attr("title")
+            val actorImage = "${turkceAltyaziOrgUrl}/${firstChildsFirstChild?.attr("src")}"
+            actorName?.let { name -> Actor(name = name, image = actorImage) }
+        }
+
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
             this.posterUrl = poster
-            this.plot = title
+            this.plot = plot
             this.year = year
             this.rating=rating
+            this.addActors(actors)
             this.tags = tags
-            this.addImdbId("tt0837562")
+            this.addImdbId(imdbId)
         }
     }
 
@@ -188,7 +205,7 @@ open class YTS(val context: Context) : MainAPI() {
                             val subtitleUrl = "http://localhost:1235/${extractedFile.name}"
                             if(subtitleUrl != null){
                                 subtitleCallback.invoke(
-                                    SubtitleFile("Türkçe",subtitleUrl)
+                                    SubtitleFile("Türkçe - Yify",subtitleUrl)
                                 )
                             }
                         }
