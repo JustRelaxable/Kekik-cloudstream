@@ -319,11 +319,23 @@ open class YTS(val context: Context) : MainAPI() {
     }
 
     private fun fixSubtitle(file: File) {
-        println("Fixing subtitle: ${file.absolutePath}")
-        val bytes = file.readBytes()
-        val decodedText = String(bytes, Charset.forName("Windows-1254"))
-        file.writeText(decodedText, Charsets.UTF_8)
-        println("Subtitle fixed successfully.")
-    }
+        try {
+            val utf8Text = file.readText(Charsets.UTF_8)
 
+            if (utf8Text.contains("�")) {
+                println("Fixing subtitle: ${file.absolutePath}")
+
+                val bytes = file.readBytes()
+                val decodedText = String(bytes, Charset.forName("Windows-1254"))
+
+                file.writeText(decodedText, Charsets.UTF_8)
+
+                println("Subtitle fixed successfully.")
+            } else {
+                println("Subtitle is already correct: ${file.absolutePath}")
+            }
+        } catch (e: Exception) {
+            println("Error fixing subtitle: ${e.message}")
+        }
+    }
 }
