@@ -5,6 +5,18 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addImdbId
 import com.lagradost.cloudstream3.subtitles.SubtitleResource
 import com.lagradost.cloudstream3.utils.*
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.Response
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
+import java.net.URL
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
 
 open class YTS : MainAPI() {
     override var mainUrl              = "https://en.yts-official.mx"
@@ -14,6 +26,8 @@ open class YTS : MainAPI() {
     override val hasQuickSearch       = true
     override val hasDownloadSupport   = true
     override val supportedTypes       = setOf(TvType.Movie,TvType.Torrent)
+
+    val subtitlesUrl = "https://yifysubtitles.ch"
 
     override val mainPage = mainPageOf(
         "browse-movies?keyword=&quality=all&genre=all&rating=0&year=0&order_by=latest" to "Latest",
@@ -87,6 +101,38 @@ open class YTS : MainAPI() {
 
     override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
         val document = app.get(data).document
+
+        val imdbId = Regex("movie-imdb\\/(tt\\d+)").find(document.html())?.groupValues?.get(1)
+        if(imdbId != null){
+            val subtitleFetchUrl = "${subtitlesUrl}/movie-imdb/${imdbId}"
+            val document = app.get(subtitleFetchUrl).document
+
+            val rows = document.select("tr[data-id]")
+            for (row in rows) {
+                val turkishSpan = row.selectFirst("td.flag-cell span.sub-lang")?.takeIf { it.text() == "Turkish" }
+
+                if (turkishSpan != null) {
+                    val subtitlePath = row.selectFirst("td a")?.attr("href")
+
+                    if (!subtitlePath.isNullOrEmpty()) {
+                        val zipSubtitleUrl = "https://yifysubtitles.ch/subtitle" + subtitlePath.removePrefix("/subtitles") + ".zip"
+
+                        val tempDir = File(System.getProperty("java.io.tmpdir"), "subtitles")
+                        val extractedFile = downloadAndExtractZip(zipSubtitleUrl, tempDir)
+
+                        if(extractedFile!=null){
+                            val subtitleUrl = uploadFileToCatbox(extractedFile)
+                            if(subtitleUrl != null){
+                                subtitleCallback.invoke(
+                                    SubtitleFile("Türkçe",subtitleUrl)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         document.select("p.hidden-md.hidden-lg a").amap {
             val href=getURL(it.attr("href").replace(" ","%20"))
             val quality =it.ownText().substringBefore(".").replace("p","").toInt()
@@ -106,5 +152,86 @@ open class YTS : MainAPI() {
 
     fun getURL(url: String): String {
         return "${mainUrl}$url"
+    }
+
+    suspend fun downloadAndExtractZip(zipUrl: String, outputDir: File): File? {
+        return try {
+            // Create the output directory if it doesn't exist
+            if (!outputDir.exists()) outputDir.mkdirs()
+
+            // Download the ZIP file
+            val url = URL(zipUrl)
+            val connection = url.openConnection()
+            connection.connect()
+
+            val zipInputStream = ZipInputStream(connection.getInputStream())
+
+            var entry: ZipEntry?
+            var subtitleFile: File? = null
+
+            // Extract files from the ZIP
+            while (zipInputStream.nextEntry.also { entry = it } != null) {
+                val entryName = entry!!.name
+                val outputFile = File(outputDir, entryName)
+
+                // Ensure the output file is within the output directory (security check)
+                if (!outputFile.canonicalPath.startsWith(outputDir.canonicalPath)) {
+                    throw SecurityException("ZIP entry is outside the target directory")
+                }
+
+                // Write the file to the output directory
+                FileOutputStream(outputFile).use { outputStream ->
+                    zipInputStream.copyTo(outputStream)
+                }
+
+                // Assume the first .srt file is the subtitle file
+                if (entryName.endsWith(".srt")) {
+                    subtitleFile = outputFile
+                }
+            }
+
+            zipInputStream.close()
+            subtitleFile // Return the extracted subtitle file
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    suspend fun uploadFileToCatbox(file: File): String? {
+        val client = OkHttpClient()
+
+        // Create the request body
+        val requestBody = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart("reqtype", "fileupload")
+            .addFormDataPart("time", "12h")
+            .addFormDataPart(
+                "fileToUpload",
+                file.name,
+                file.asRequestBody("application/octet-stream".toMediaType())
+            )
+            .build()
+
+        // Create the request
+        val request = Request.Builder()
+            .url("https://litterbox.catbox.moe/resources/internals/api.php")
+            .post(requestBody)
+            .build()
+
+        // Execute the request
+        return try {
+            val response: Response = client.newCall(request).execute()
+            if (response.isSuccessful) {
+                // Return the response body (file URL)
+                response.body?.string()
+            } else {
+                println("Failed to upload file: ${response.code} - ${response.message}")
+                null
+            }
+        } catch (e: IOException) {
+            println("Error uploading file: ${e.message}")
+            null
+        }
     }
 }
