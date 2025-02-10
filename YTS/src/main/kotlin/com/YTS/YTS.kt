@@ -23,6 +23,7 @@ import java.io.*
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.URLDecoder
+import java.nio.charset.Charset
 
 open class YTS(val context: Context) : MainAPI() {
     override var mainUrl              = "https://en.yts-official.mx"
@@ -202,6 +203,7 @@ open class YTS(val context: Context) : MainAPI() {
 
                         if(extractedFile!=null){
                             //val subtitleUrl = uploadFileToCatbox(extractedFile)
+                            fixSubtitle(extractedFile)
                             val subtitleUrl = "http://localhost:1235/${extractedFile.name}"
                             if(subtitleUrl != null){
                                 subtitleCallback.invoke(
@@ -315,4 +317,13 @@ open class YTS(val context: Context) : MainAPI() {
             null
         }
     }
+
+    private fun fixSubtitle(file: File) {
+        println("Fixing subtitle: ${file.absolutePath}")
+        val bytes = file.readBytes()
+        val decodedText = String(bytes, Charset.forName("Windows-1254"))
+        file.writeText(decodedText, Charsets.UTF_8)
+        println("Subtitle fixed successfully.")
+    }
+
 }
