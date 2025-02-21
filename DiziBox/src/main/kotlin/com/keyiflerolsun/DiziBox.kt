@@ -2,7 +2,7 @@
 
 package com.keyiflerolsun
 
-import android.util.Log
+import com.lagradost.api.Log
 import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
@@ -13,7 +13,7 @@ import okhttp3.Interceptor
 import okhttp3.Response
 import org.jsoup.Jsoup
 import java.net.URLDecoder
-import android.util.Base64
+import java.util.Base64
 
 class DiziBox : MainAPI() {
     override var mainUrl              = "https://www.dizibox.live"
@@ -175,38 +175,43 @@ class DiziBox : MainAPI() {
         }
     }
 
-    private suspend fun iframeDecode(data:String, iframe:String, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
+    private suspend fun iframeDecode(
+        data: String,
+        iframe: String,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean {
         var iframe = iframe
 
         if (iframe.contains("/player/king/king.php")) {
             iframe = iframe.replace("king.php?v=", "king.php?wmode=opaque&v=")
             val subDoc = app.get(
                 iframe,
-                referer     = data,
-                cookies     = mapOf(
-                    "LockUser"      to "true",
+                referer = data,
+                cookies = mapOf(
+                    "LockUser" to "true",
                     "isTrustedUser" to "true",
-                    "dbxu"          to "1722403730363"
+                    "dbxu" to "1722403730363"
                 ),
                 interceptor = interceptor
             ).document
             val subFrame = subDoc.selectFirst("div#Player iframe")?.attr("src") ?: return false
 
-            val iDoc          = app.get(subFrame, referer="${mainUrl}/").text
-            val cryptData     = Regex("""CryptoJS\.AES\.decrypt\(\"(.*)\",\"""").find(iDoc)?.groupValues?.get(1) ?: return false
-            val cryptPass     = Regex("""\",\"(.*)\"\);""").find(iDoc)?.groupValues?.get(1) ?: return false
+            val iDoc = app.get(subFrame, referer = "${mainUrl}/").text
+            val cryptData = Regex("""CryptoJS\.AES\.decrypt\(\"(.*)\",\"""").find(iDoc)?.groupValues?.get(1) ?: return false
+            val cryptPass = Regex("""\",\"(.*)\"\);""").find(iDoc)?.groupValues?.get(1) ?: return false
             val decryptedData = CryptoJS.decrypt(cryptPass, cryptData)
-            val decryptedDoc  = Jsoup.parse(decryptedData)
-            val vidUrl        = Regex("""file: \'(.*)',""").find(decryptedDoc.html())?.groupValues?.get(1) ?: return false
+            val decryptedDoc = Jsoup.parse(decryptedData)
+            val vidUrl = Regex("""file: \'(.*)',""").find(decryptedDoc.html())?.groupValues?.get(1) ?: return false
 
             callback.invoke(
                 ExtractorLink(
-                    source  = "${this.name}",
-                    name    = "${this.name}",
-                    url     = vidUrl,
+                    source = "${this.name}",
+                    name = "${this.name}",
+                    url = vidUrl,
                     referer = vidUrl,
                     quality = getQualityFromName("4k"),
-                    isM3u8  = true
+                    isM3u8 = true
                 )
             )
 
@@ -214,11 +219,11 @@ class DiziBox : MainAPI() {
             iframe = iframe.replace("moly.php?h=", "moly.php?wmode=opaque&h=")
             var subDoc = app.get(
                 iframe,
-                referer     = data,
-                cookies     = mapOf(
-                    "LockUser"      to "true",
+                referer = data,
+                cookies = mapOf(
+                    "LockUser" to "true",
                     "isTrustedUser" to "true",
-                    "dbxu"          to "1722403730363"
+                    "dbxu" to "1722403730363"
                 ),
                 interceptor = interceptor
             ).document
@@ -226,8 +231,8 @@ class DiziBox : MainAPI() {
             val atobData = Regex("""unescape\(\"(.*)\"\)""").find(subDoc.html())?.groupValues?.get(1)
             if (atobData != null) {
                 val decodedAtob = URLDecoder.decode(atobData, "utf-8")
-                val strAtob     = String(Base64.decode(decodedAtob, Base64.DEFAULT), Charsets.UTF_8)
-                subDoc          = Jsoup.parse(strAtob)
+                val strAtob = String(Base64.getDecoder().decode(decodedAtob), Charsets.UTF_8)
+                subDoc = Jsoup.parse(strAtob)
             }
 
             val subFrame = subDoc.selectFirst("div#Player iframe")?.attr("src") ?: return false
@@ -238,11 +243,11 @@ class DiziBox : MainAPI() {
             iframe = iframe.replace("haydi.php?v=", "haydi.php?wmode=opaque&v=")
             var subDoc = app.get(
                 iframe,
-                referer     = data,
-                cookies     = mapOf(
-                    "LockUser"      to "true",
+                referer = data,
+                cookies = mapOf(
+                    "LockUser" to "true",
                     "isTrustedUser" to "true",
-                    "dbxu"          to "1722403730363"
+                    "dbxu" to "1722403730363"
                 ),
                 interceptor = interceptor
             ).document
@@ -250,8 +255,8 @@ class DiziBox : MainAPI() {
             val atobData = Regex("""unescape\(\"(.*)\"\)""").find(subDoc.html())?.groupValues?.get(1)
             if (atobData != null) {
                 val decodedAtob = URLDecoder.decode(atobData, "utf-8")
-                val strAtob     = String(Base64.decode(decodedAtob, Base64.DEFAULT), Charsets.UTF_8)
-                subDoc          = Jsoup.parse(strAtob)
+                val strAtob = String(Base64.getDecoder().decode(decodedAtob), Charsets.UTF_8)
+                subDoc = Jsoup.parse(strAtob)
             }
 
             val subFrame = subDoc.selectFirst("div#Player iframe")?.attr("src") ?: return false

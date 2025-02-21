@@ -1,12 +1,11 @@
 package com.coxju
 
+import com.lagradost.cloudstream3.plugins.BasePlugin
 import com.lagradost.cloudstream3.plugins.CloudstreamPlugin
-import com.lagradost.cloudstream3.plugins.Plugin
-import android.content.Context
 
 @CloudstreamPlugin
-class SpankBangPlugin: Plugin() {
-    override fun load(context: Context) {
+class SpankBangPlugin: BasePlugin() {
+    override fun load() {
         registerMainAPI(SpankBang())
     }
 }

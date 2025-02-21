@@ -4,6 +4,7 @@ cloudstream {
     authors     = listOf("keyiflerolsun")
     language    = "tr"
     description = "En Güncel Kore Dizileri izleme Sitesi"
+    isCrossPlatform = true
 
     /**
      * Status int as the following:

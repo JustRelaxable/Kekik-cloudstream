@@ -4,6 +4,7 @@ cloudstream {
     authors     = listOf("keyiflerolsun", "yusiqo")
     language    = "tr"
     description = "Sinewix | Ücretsiz Film - Dizi - Anime İzleme Uygulaması."
+    isCrossPlatform = true
 
     /**
      * Status int as the following:

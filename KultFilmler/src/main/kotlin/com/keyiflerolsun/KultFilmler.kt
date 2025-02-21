@@ -2,13 +2,13 @@
 
 package com.keyiflerolsun
 
-import android.util.Log
+import com.lagradost.api.Log
 import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
-import android.util.Base64
 import org.jsoup.Jsoup
+import java.util.Base64
 
 class KultFilmler : MainAPI() {
     override var mainUrl              = "https://kultfilmler.net"
@@ -143,7 +143,7 @@ class KultFilmler : MainAPI() {
         val padding    = 4 - atob.length % 4
         val atobPadded = if (padding < 4) atob.padEnd(atob.length + padding, '=') else atob
 
-        val iframe = Jsoup.parse(String(Base64.decode(atobPadded, Base64.DEFAULT), Charsets.UTF_8))
+        val iframe = Jsoup.parse(String(Base64.getDecoder().decode(atobPadded), Charsets.UTF_8))
 
         return fixUrlNull(iframe.selectFirst("iframe")?.attr("src")) ?: ""
     }

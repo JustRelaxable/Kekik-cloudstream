@@ -4,6 +4,7 @@ cloudstream {
     authors     = listOf("keyiflerolsun", "JustRelaxable")
     language    = "tr"
     description = "En yeni belgeseller, türkçe altyazılı yada dublaj olarak 1080p kalitesinde HD belgesel izle."
+    isCrossPlatform = true
 
     /**
      * Status int as the following:

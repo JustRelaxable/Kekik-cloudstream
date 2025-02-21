@@ -1,12 +1,11 @@
 package com.recloudstream
 
+import com.lagradost.cloudstream3.plugins.BasePlugin
 import com.lagradost.cloudstream3.plugins.CloudstreamPlugin
-import com.lagradost.cloudstream3.plugins.Plugin
-import android.content.Context
 
 @CloudstreamPlugin
-class YouTubePlugin: Plugin() {
-    override fun load(context: Context) {
+class YouTubePlugin: BasePlugin() {
+    override fun load() {
         registerMainAPI(YouTube())
     }
 }

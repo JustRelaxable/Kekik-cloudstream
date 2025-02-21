@@ -4,6 +4,7 @@ cloudstream {
     authors     = listOf("JustRelaxable", "keyiflerolsun")
     language    = "tr"
     description = "İnatBox cloudstream eklentisidir. Sevdiğiniz yayın platformlarını ve canlı maçları burada bulabilirsiniz."
+    isCrossPlatform = true
 
     /**
      * Status int as the following:

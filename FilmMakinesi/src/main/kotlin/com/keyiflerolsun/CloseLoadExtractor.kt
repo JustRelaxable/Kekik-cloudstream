@@ -2,10 +2,10 @@
 
 package com.keyiflerolsun
 
-import android.util.Log
+import com.lagradost.api.Log
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
-import android.util.Base64
+import java.util.Base64
 
 open class CloseLoad : ExtractorApi() {
     override val name            = "CloseLoad"
@@ -32,7 +32,7 @@ open class CloseLoad : ExtractorApi() {
         val padding    = 4 - atob.length % 4
         val atobPadded = if (padding < 4) atob.padEnd(atob.length + padding, '=') else atob
         // * Base64 decode ve String'e dönüştürme
-        val m3uLink   = String(Base64.decode(atobPadded, Base64.DEFAULT), Charsets.UTF_8)
+        val m3uLink = String(Base64.getDecoder().decode(atobPadded), Charsets.UTF_8)
 
         Log.d("Kekik_${this.name}", "m3uLink » ${m3uLink}")
 

@@ -4,6 +4,7 @@ cloudstream {
     authors     = listOf("keyiflerolsun")
     language    = "tr"
     description = "Hd film izliyerek arkadaşlarınızla ve sevdiklerinizle iyi bir vakit geçirmek istiyorsanız açın bir film eğlenmeye bakın. Bilim kurgu filmleri, aşk drama vahşet aşk romantik sıradışı korku filmlerini izle."
+    isCrossPlatform = true
 
     /**
      * Status int as the following:

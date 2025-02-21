@@ -4,6 +4,7 @@ cloudstream {
     authors     = listOf("hexated", "keyiflerolsun")
     language    = "tr"
     description = "Türkiye'nin en hızlı hd film izleme sitesi"
+    isCrossPlatform = true
 
     /**
      * Status int as the following:

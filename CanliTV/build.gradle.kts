@@ -4,6 +4,7 @@ cloudstream {
     authors     = listOf("Adippe", "keyiflerolsun")
     language    = "tr"
     description = "Canlı TV"
+    isCrossPlatform = true
 
     /**
      * Status int as the following:

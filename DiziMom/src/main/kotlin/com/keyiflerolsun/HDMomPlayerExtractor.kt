@@ -2,13 +2,13 @@
 
 package com.keyiflerolsun
 
-import android.util.Log
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.extractors.helper.AesHelper
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import com.lagradost.api.Log
 
 open class HDMomPlayer : ExtractorApi() {
     override val name            = "HDMomPlayer"

@@ -4,6 +4,7 @@ cloudstream {
     authors     = listOf("keyiflerolsun")
     language    = "tr"
     description = "Kült Filmler özenle en iyi filmleri derler ve iyi bir altyazılı film izleme deneyimi sunmayı amaçlar"
+    isCrossPlatform = true
 
     /**
      * Status int as the following:

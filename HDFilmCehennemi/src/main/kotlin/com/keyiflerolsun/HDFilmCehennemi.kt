@@ -2,13 +2,13 @@
 
 package com.hexated
 
-import android.util.Log
 import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.lagradost.api.Log
 import org.jsoup.Jsoup
 
 class HDFilmCehennemi : MainAPI() {

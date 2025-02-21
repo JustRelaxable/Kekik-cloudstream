@@ -2,18 +2,18 @@
 
 package com.keyiflerolsun
 
-import android.util.Log
-import android.util.Base64
 import org.jsoup.nodes.Element
 import org.jsoup.nodes.Document
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import com.lagradost.api.Log
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
+import java.util.Base64
 
 class FullHDFilmizlesene : MainAPI() {
     override var mainUrl              = "https://www.fullhdfilmizlesene.de"
@@ -116,7 +116,7 @@ class FullHDFilmizlesene : MainAPI() {
     }
 
     private fun atob(s: String): String {
-        return String(Base64.decode(s, Base64.DEFAULT))
+        return String(Base64.getDecoder().decode(s))
     }
 
     private fun rtt(s: String): String {

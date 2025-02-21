@@ -2,8 +2,8 @@
 
 package com.keyiflerolsun
 
+import com.lagradost.api.Log
 import java.util.Locale
-import android.util.Log
 import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*

@@ -4,6 +4,7 @@ cloudstream {
     authors     = listOf("keyiflerolsun", "muratcesmecioglu")
     language    = "tr"
     description = "en yeni dizileri güvenli ve hızlı şekilde sunar."
+    isCrossPlatform = true
 
     /**
      * Status int as the following:

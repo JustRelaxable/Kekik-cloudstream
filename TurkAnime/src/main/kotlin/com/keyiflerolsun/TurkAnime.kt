@@ -2,13 +2,13 @@
 
 package com.keyiflerolsun
 
-import android.util.Log
+import com.lagradost.api.Log
 import org.jsoup.nodes.Element
 import org.jsoup.nodes.Document
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
-import android.util.Base64
 import com.lagradost.cloudstream3.extractors.helper.AesHelper
+import java.util.Base64
 
 class TurkAnime : MainAPI() {
     override var mainUrl              = "https://www.turkanime.co"
@@ -134,10 +134,13 @@ class TurkAnime : MainAPI() {
 
     private fun iframe2AesLink(iframe: String): String? {
         var aesData = iframe.substringAfter("embed/#/url/").substringBefore("?status")
-        aesData     = String(Base64.decode(aesData, Base64.DEFAULT))
 
-        val aesKey  = "710^8A@3@>T2}#zN5xK?kR7KNKb@-A!LzYL5~M1qU0UfdWsZoBm4UUat%}ueUv6E--*hDPPbH7K2bp9^3o41hw,khL:}Kx8080@M"
-        val aesLink = AesHelper.cryptoAESHandler(aesData, aesKey.toByteArray(), false)?.replace("\\", "") ?: throw ErrorLoadingException("failed to decrypt")
+        // Decode using java.util.Base64
+        aesData = String(Base64.getDecoder().decode(aesData))
+
+        val aesKey = "710^8A@3@>T2}#zN5xK?kR7KNKb@-A!LzYL5~M1qU0UfdWsZoBm4UUat%}ueUv6E--*hDPPbH7K2bp9^3o41hw,khL:}Kx8080@M"
+        val aesLink = AesHelper.cryptoAESHandler(aesData, aesKey.toByteArray(), false)
+            ?.replace("\\", "") ?: throw ErrorLoadingException("failed to decrypt")
 
         return fixUrlNull(aesLink.replace("\"", ""))
     }

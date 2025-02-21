@@ -4,6 +4,7 @@ cloudstream {
     authors     = listOf("keyiflerolsun")
     language    = "tr"
     description = "Yabancı Dizi izle, Tüm yabancı dizilerin yeni ve eski sezonlarını full hd izleyebileceğiniz elit site."
+    isCrossPlatform = true
 
     /**
      * Status int as the following:

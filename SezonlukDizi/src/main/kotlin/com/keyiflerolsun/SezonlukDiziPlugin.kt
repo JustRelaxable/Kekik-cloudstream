@@ -1,12 +1,12 @@
 package com.keyiflerolsun
 
+import com.lagradost.cloudstream3.plugins.BasePlugin
 import com.lagradost.cloudstream3.plugins.CloudstreamPlugin
 import com.lagradost.cloudstream3.plugins.Plugin
-import android.content.Context
 
 @CloudstreamPlugin
-class SezonlukDiziPlugin: Plugin() {
-    override fun load(context: Context) {
+class SezonlukDiziPlugin: BasePlugin() {
+    override fun load() {
         registerMainAPI(SezonlukDizi())
     }
 }

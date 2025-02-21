@@ -4,6 +4,7 @@ cloudstream {
     authors     = listOf("Horis, megix", "keyiflerolsun")
     language    = "hi"
     description = "Netflix, PrimeVideo Content in Multiple Languages"
+    isCrossPlatform = true
 
     /**
      * Status int as the following:

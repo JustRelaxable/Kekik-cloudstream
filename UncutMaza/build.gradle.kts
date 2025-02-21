@@ -4,6 +4,7 @@ cloudstream {
     authors     = listOf("coxju")
     language    = "hi"
     description = "(VPN) We Provide Huge Colocation of Hindi Porn (Uncut) Web Series"
+    isCrossPlatform = true
 
     /**
      * Status int as the following:

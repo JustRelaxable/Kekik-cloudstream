@@ -1,12 +1,12 @@
 package com.keyiflerolsun
 
-import android.util.Log
 import com.lagradost.cloudstream3.USER_AGENT
 import com.lagradost.cloudstream3.utils.*
 import com.fasterxml.jackson.core.json.JsonReadFeature
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.lagradost.api.Log
 import com.lagradost.nicehttp.Requests
 import com.lagradost.nicehttp.NiceResponse
 import com.lagradost.nicehttp.ResponseParser

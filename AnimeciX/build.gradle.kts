@@ -4,6 +4,7 @@ cloudstream {
     authors     = listOf("keyiflerolsun", "inatchii", "JustRelaxable")
     language    = "tr"
     description = "AnimeciX, animeleri keşfedebileceğiniz ve animeler hakkında her şeyi öğrenebileceğiniz bir paylaşım platformudur."
+    isCrossPlatform = true
 
     /**
      * Status int as the following:

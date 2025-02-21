@@ -2,7 +2,7 @@
 
 package com.keyiflerolsun
 
-import android.util.Base64
+import java.util.Base64
 
 class IframeKodlayici {
     companion object {
@@ -11,7 +11,7 @@ class IframeKodlayici {
         }
 
         fun base64Coz(encodedString: String): String {
-            val decodedBytes = Base64.decode(encodedString, Base64.DEFAULT)
+            val decodedBytes = Base64.getDecoder().decode(encodedString)
             return String(decodedBytes, Charsets.UTF_8)
         }
 

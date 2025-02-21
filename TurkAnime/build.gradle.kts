@@ -4,6 +4,7 @@ cloudstream {
     authors     = listOf("keyiflerolsun")
     language    = "tr"
     description = "Türk Anime TV - Türkiye'nin Online Anime izleme sitesi."
+    isCrossPlatform = true
 
     /**
      * Status int as the following:

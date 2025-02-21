@@ -1,6 +1,6 @@
 package com.keyiflerolsun
 
-import android.util.Log
+import com.lagradost.api.Log
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import okhttp3.Interceptor
@@ -9,11 +9,11 @@ import java.net.URI
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 import javax.crypto.spec.IvParameterSpec
-import android.util.Base64
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONException
 import org.json.JSONObject
+import java.util.Base64
 
 class InatBox : MainAPI() {
     private val contentUrl  = "https://dizibox.rest"
@@ -192,7 +192,7 @@ class InatBox : MainAPI() {
                 val episodeArray = try {
                     JSONArray(episodeResponse)
                 } catch (e: Exception) {
-                    Log.e("InatBox", "Failed to parse episode JSON for season: $seasonName", e)
+                    Log.e("InatBox", "Failed to parse episode JSON for season: $seasonName")
                     continue
                 }
 
@@ -416,7 +416,7 @@ class InatBox : MainAPI() {
         val hostName = try {
             URI(url).host ?: throw IllegalArgumentException("Invalid URL: $url")
         } catch (e: Exception) {
-            Log.e("InatBox", "Failed to extract hostname from URL: $url", e)
+            Log.e("InatBox", "Failed to extract hostname from URL: $url")
             return null
         }
 
@@ -462,16 +462,14 @@ class InatBox : MainAPI() {
             // First decryption iteration
             val cipher1 = Cipher.getInstance(algorithm)
             cipher1.init(Cipher.DECRYPT_MODE, keySpec, IvParameterSpec(aesKey.toByteArray()))
-            val firstIterationData =
-                cipher1.doFinal(Base64.decode(response.split(":")[0], Base64.DEFAULT))
+            val firstIterationData = cipher1.doFinal(Base64.getDecoder().decode(response.split(":")[0]))
 
             // Second decryption iteration
             val cipher2 = Cipher.getInstance(algorithm)
             cipher2.init(Cipher.DECRYPT_MODE, keySpec, IvParameterSpec(aesKey.toByteArray()))
             val secondIterationData = cipher2.doFinal(
-                Base64.decode(
-                    String(firstIterationData).split(":")[0],
-                    Base64.DEFAULT
+                Base64.getDecoder().decode(
+                    String(firstIterationData).split(":")[0]
                 )
             )
 

@@ -2,13 +2,13 @@
 
 package com.keyiflerolsun
 
-import android.util.Log
+import com.lagradost.api.Log
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.extractors.helper.AesHelper
 import java.net.URLEncoder
 import java.net.URLDecoder
-import android.util.Base64
+import java.util.Base64
 
 class OxAxPlayer : ExtractorApi() {
     override var name            = "OxAxPlayer"
@@ -16,11 +16,13 @@ class OxAxPlayer : ExtractorApi() {
     override val requiresReferer = true
 
     suspend fun base64Encode(str: String): String {
-        return Base64.encodeToString(URLEncoder.encode(str, "UTF-8").toByteArray(Charsets.UTF_8), Base64.DEFAULT)
+        val encodedStr = URLEncoder.encode(str, "UTF-8")
+        return Base64.getEncoder().encodeToString(encodedStr.toByteArray(Charsets.UTF_8))
     }
 
     suspend fun base64Decode(str: String): String {
-        return URLDecoder.decode(String(Base64.decode(str, Base64.DEFAULT), Charsets.UTF_8), "UTF-8")
+        val decodedBytes = Base64.getDecoder().decode(str)
+        return URLDecoder.decode(String(decodedBytes, Charsets.UTF_8), "UTF-8")
     }
 
     suspend fun decodeAtob(base64Str: String): String {

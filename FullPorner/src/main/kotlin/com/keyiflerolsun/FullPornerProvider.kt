@@ -1,13 +1,13 @@
 package com.coxju
 
-import android.content.Context
 import com.coxju.FullPorner
+import com.lagradost.cloudstream3.plugins.BasePlugin
 import com.lagradost.cloudstream3.plugins.CloudstreamPlugin
 import com.lagradost.cloudstream3.plugins.Plugin
 
 @CloudstreamPlugin
-class FullPornerProvider : Plugin() {
-    override fun load(context: Context) {
+class FullPornerProvider : BasePlugin() {
+    override fun load() {
         registerMainAPI(FullPorner())
     }
 }

@@ -2,12 +2,12 @@
 
 package com.keyiflerolsun
 
-import android.util.Log
 import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.lagradost.api.Log
 
 class SinemaCX : MainAPI() {
     override var mainUrl              = "https://www.sinema.cx"

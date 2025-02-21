@@ -4,6 +4,7 @@ cloudstream {
     authors     = listOf("keyiflerolsun","JustRelaxable")
     language    = "tr"
     description = "Güncel ve eski dizileri en iyi görüntü kalitesiyle bulabileceğiniz yabancı dizi izleme siteniz."
+    isCrossPlatform = true
 
     /**
      * Status int as the following:

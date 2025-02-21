@@ -2,7 +2,7 @@
 
 package com.coxju
 
-import android.util.Log
+import com.lagradost.api.Log
 import org.jsoup.nodes.*
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*

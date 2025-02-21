@@ -4,6 +4,7 @@ cloudstream {
     authors     = listOf("keyiflerolsun")
     language    = "en"
     description = "The Cave of Forgotten Films"
+    isCrossPlatform = true
 
     /**
      * Status int as the following:
