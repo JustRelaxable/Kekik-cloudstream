@@ -10,7 +10,7 @@ import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
 
 class DiziYou : MainAPI() {
-    override var mainUrl              = "https://www.diziyou.live"
+    override var mainUrl              = "https://www.diziyou1.com"
     override var name                 = "DiziYou"
     override val hasMainPage          = true
     override var lang                 = "tr"
@@ -107,23 +107,24 @@ class DiziYou : MainAPI() {
 
         val subTitles  = mutableListOf<DiziyouSubtitle>()
         val streamUrls = mutableListOf<DiziyouStream>()
+        val storage    = mainUrl.replace("www", "storage")
 
         document.select("span.diziyouOption").forEach {
             val optId   = it.attr("id")
             val optName = it.text()
 
             if (optId == "turkceAltyazili") {
-                subTitles.add(DiziyouSubtitle("Turkish", "https://storage.diziyou.live/subtitles/${itemId}/tr.vtt"))
-                streamUrls.add(DiziyouStream("Orjinal Dil", "https://storage.diziyou.live/episodes/${itemId}/play.m3u8"))
+                subTitles.add(DiziyouSubtitle("Turkish", "${storage}/subtitles/${itemId}/tr.vtt"))
+                streamUrls.add(DiziyouStream("Orjinal Dil", "${storage}/episodes/${itemId}/play.m3u8"))
             }
 
             if (optId == "ingilizceAltyazili") {
-                subTitles.add(DiziyouSubtitle("English", "https://storage.diziyou.live/subtitles/${itemId}/en.vtt"))
-                streamUrls.add(DiziyouStream("Orjinal Dil", "https://storage.diziyou.live/episodes/${itemId}/play.m3u8"))
+                subTitles.add(DiziyouSubtitle("English", "${storage}/subtitles/${itemId}/en.vtt"))
+                streamUrls.add(DiziyouStream("Orjinal Dil", "${storage}/episodes/${itemId}/play.m3u8"))
             }
 
             if (optId == "turkceDublaj") {
-                streamUrls.add(DiziyouStream("Türkçe Dublaj", "https://storage.diziyou.live/episodes/${itemId}_tr/play.m3u8"))
+                streamUrls.add(DiziyouStream("Türkçe Dublaj", "${storage}/episodes/${itemId}_tr/play.m3u8"))
             }
         }
 

@@ -274,24 +274,13 @@ class InatBox : MainAPI() {
     private suspend fun parseLiveSportsStreamLoadResponse(item: JSONObject): LiveStreamLoadResponse? {
         try {
             val chContent = parseToChContent(item)
-            val name = chContent.chName
-            var url = chContent.chUrl
             val posterUrl = chContent.chImg
-            val headers = chContent.chHeaders
-            val reg = chContent.chReg
-
-            val jsonResponse = runCatching { makeInatRequest(url) }.getOrNull() ?: getJsonFromEncryptedInatResponse(app.get(url).text) ?: return null
-            val firstItem = JSONObject(jsonResponse)
-            firstItem.put("chHeaders", headers)
-            firstItem.put("chReg", reg)
-            firstItem.put("chName",name)
-            firstItem.put("chImg",posterUrl)
 
             return LiveStreamLoadResponse(
                 name = name,
                 url = item.toString(),
                 apiName = this.name,
-                dataUrl = firstItem.toString(),
+                dataUrl = item.toString(),
                 posterUrl = posterUrl
             )
         } catch (e: Exception) {
@@ -349,17 +338,41 @@ class InatBox : MainAPI() {
             chUrl = item.getString("chUrl").vkSourceFix(),
             chImg = item.getString("chImg"),
             chHeaders = item.getString("chHeaders"),
-            chReg = item.getString("chReg")
+            chReg = item.getString("chReg"),
+            chType = item.getString("chType")
         )
     }
 
     private suspend fun loadChContentLinks(chContent: ChContent, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit){
-        var sourceUrl = chContent.chUrl
+        val chType = chContent.chType
+        var contentToProcess : ChContent
+
+        if(chType == "tekli_regex_lb_sh_3"){
+            val name = chContent.chName
+            var url = chContent.chUrl
+            val posterUrl = chContent.chImg
+            val headers = chContent.chHeaders
+            val reg = chContent.chReg
+            val type = chContent.chType
+
+            val jsonResponse = runCatching { makeInatRequest(url) }.getOrNull() ?: getJsonFromEncryptedInatResponse(app.get(url).text) ?: return
+            val firstItem = JSONObject(jsonResponse)
+            firstItem.put("chHeaders", headers)
+            firstItem.put("chReg", reg)
+            firstItem.put("chName",name)
+            firstItem.put("chImg",posterUrl)
+            firstItem.put("chType",type)
+            contentToProcess = parseToChContent(firstItem)
+        } else{
+            contentToProcess = chContent
+        }
+
+        var sourceUrl = contentToProcess.chUrl
 
         var headers: MutableMap<String, String> = mutableMapOf()
         try {
-            val chHeaders = chContent.chHeaders
-            val chReg = chContent.chReg
+            val chHeaders = contentToProcess.chHeaders
+            val chReg = contentToProcess.chReg
             if (chHeaders != "null") {
                 val jsonHeaders = JSONArray(chHeaders).getJSONObject(0)
                 for (entry in jsonHeaders.keys()) {
@@ -378,7 +391,7 @@ class InatBox : MainAPI() {
         val extractorFound =
             loadExtractor(sourceUrl, headers["Referer"], subtitleCallback){
                 callback.invoke(
-                    ExtractorLink(source = it.source,name = chContent.chName, url = it.url, referer = it.referer, quality = it.quality, headers = it.headers, type = it.type)
+                    ExtractorLink(source = it.source,name = contentToProcess.chName, url = it.url, referer = it.referer, quality = it.quality, headers = it.headers, type = it.type)
                 )
             }
 
@@ -387,7 +400,7 @@ class InatBox : MainAPI() {
             callback.invoke(
                 ExtractorLink(
                     source = this.name,
-                    name = chContent.chName,
+                    name = contentToProcess.chName,
                     url = sourceUrl,
                     referer = "",
                     quality = Qualities.Unknown.value,

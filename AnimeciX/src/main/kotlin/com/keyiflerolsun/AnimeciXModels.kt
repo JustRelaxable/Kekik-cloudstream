@@ -29,7 +29,7 @@ data class AnimeSearch(
     @JsonProperty("id") val id: Int,
     @JsonProperty("title_type") val title_type: String,
     @JsonProperty("name") val title: String,
-    @JsonProperty("poster") val poster: String,
+    @JsonProperty("poster") val poster: String?,
 )
 
 data class Anime(

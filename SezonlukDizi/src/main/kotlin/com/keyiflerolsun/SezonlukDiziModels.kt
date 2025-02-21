@@ -15,3 +15,8 @@ data class Veri(
     @JsonProperty("id") val id: Int,
     @JsonProperty("kalite") val kalite: Int,
 )
+
+data class AspData(
+    val alternatif : String,
+    val embed : String
+)

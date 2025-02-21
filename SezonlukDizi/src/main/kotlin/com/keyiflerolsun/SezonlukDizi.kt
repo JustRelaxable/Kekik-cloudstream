@@ -107,11 +107,12 @@ class SezonlukDizi : MainAPI() {
     override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
         Log.d("SZD", "data » ${data}")
         val document = app.get(data).document
+        val aspData = getAspData()
         val bid      = document.selectFirst("div#dilsec")?.attr("data-id") ?: return false
         Log.d("SZD", "bid » ${bid}")
 
         val altyaziResponse = app.post(
-            "${mainUrl}/ajax/dataAlternatif2.asp",
+            "${mainUrl}/ajax/dataAlternatif${aspData.alternatif}.asp",
             headers = mapOf("X-Requested-With" to "XMLHttpRequest"),
             data    = mapOf(
                 "bid" to bid,
@@ -122,7 +123,7 @@ class SezonlukDizi : MainAPI() {
             Log.d("SZD", "dil»1 | veri.baslik » ${veri.baslik}")
 
             val veriResponse = app.post(
-                "${mainUrl}/ajax/dataEmbed.asp",
+                "${mainUrl}/ajax/dataEmbed${aspData.embed}.asp",
                 headers = mapOf("X-Requested-With" to "XMLHttpRequest"),
                 data    = mapOf("id" to "${veri.id}")
             ).document
@@ -147,7 +148,7 @@ class SezonlukDizi : MainAPI() {
         }
 
         val dublajResponse = app.post(
-            "${mainUrl}/ajax/dataAlternatif2.asp",
+            "${mainUrl}/ajax/dataAlternatif${aspData.alternatif}.asp",
             headers = mapOf("X-Requested-With" to "XMLHttpRequest"),
             data    = mapOf(
                 "bid" to bid,
@@ -158,7 +159,7 @@ class SezonlukDizi : MainAPI() {
             Log.d("SZD", "dil»0 | veri.baslik » ${veri.baslik}")
 
             val veriResponse = app.post(
-                "${mainUrl}/ajax/dataEmbed.asp",
+                "${mainUrl}/ajax/dataEmbed${aspData.embed}.asp",
                 headers = mapOf("X-Requested-With" to "XMLHttpRequest"),
                 data    = mapOf("id" to "${veri.id}")
             ).document
@@ -183,5 +184,15 @@ class SezonlukDizi : MainAPI() {
         }
 
         return true
+    }
+
+    //Helper function for getting the number (probably some kind of version?) after the dataAlternatif and dataEmbed
+    private suspend fun getAspData() : AspData{
+        val websiteCustomJavascript = app.get("${this.mainUrl}/js/site.min.js")
+        val dataAlternatifAsp = Regex("""dataAlternatif(.*?).asp""").find(websiteCustomJavascript.text)?.groupValues?.get(1)
+            .toString()
+        val dataEmbedAsp = Regex("""dataEmbed(.*?).asp""").find(websiteCustomJavascript.text)?.groupValues?.get(1)
+            .toString()
+        return AspData(dataAlternatifAsp,dataEmbedAsp)
     }
 }

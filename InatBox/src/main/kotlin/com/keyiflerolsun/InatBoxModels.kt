@@ -5,5 +5,6 @@ data class ChContent(
     val chUrl : String,
     val chImg : String,
     val chHeaders : String,
-    val chReg : String
+    val chReg : String,
+    val chType: String
 )
